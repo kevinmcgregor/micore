@@ -21,22 +21,16 @@
 #'
 #' @examples
 micore <- function(counts, X, C0, nu0, Psi0, Gamma0, nuGamma,
-                      target.accept.rate=0.23, n.samp=1000, n.burn=1000,
-                      adapt.control=NULL, save.Ycov=FALSE) {
-
-  #Temp since X argument name clashes in mclapply
-  #X <- Xt
-
+                      target.accept.rate=0.23, n.samp=4000, n.burn=4000,
+                      adapt.control=NULL, save.eta.cov=FALSE, verbose=FALSE) {
   n <- NROW(counts)
   p <- NCOL(counts)-1
   q <- NCOL(X)
   tot.samp <- n.samp + n.burn
 
   #Initialize parameters
-  #Y <- matrix(0, n, p)
-  Y <- compositions::alr(counts+1)
-  #Y <- matrix(0, n, p) # DEBUG... CHANGE BACK TO LR TRANSFORM AFTER
-  Psi <- cov(Y)
+  eta <- compositions::alr(counts+1)
+  Psi <- cov(eta)
   Psi.inv <- qr.solve(Psi)
   gamma <- rnorm(n)
   Xg <- cbind(X, diag(gamma)%*%X)
@@ -47,22 +41,20 @@ micore <- function(counts, X, C0, nu0, Psi0, Gamma0, nuGamma,
   Gamma <- n*as.matrix(Matrix::bdiag(obs.prec, obs.prec))
 
   # Containers for sampled values
-  Y.s <- array(dim=c(n.samp, n, p))
+  eta.s <- array(dim=c(n.samp, n, p))
   Psi.s <- array(dim=c(n.samp, p, p))
   gamma.s <- matrix(0, n.samp, n)
   A.s <- B.s <- array(dim=c(n.samp, p, q))
   sigma.zero.s <- matrix(0, tot.samp, n)
-  V0.s <- array(dim=c(n.samp, 2*q, 2*q))
-  if (save.Ycov) {
-    Ycov.s <- array(0, dim=c(tot.samp, n, p, p))
+  Gamma.s <- array(dim=c(n.samp, 2*q, 2*q))
+  if (save.eta.cov) {
+    etacov.s <- array(0, dim=c(tot.samp, n, p, p))
   }
 
-  #Y.warmup <- array(dim=c(n.burn, n, p))
-  Ycov <- array(0, dim=c(n, p, p))
-  Ymu <- array(0, dim=c(n, p))
+  etacov <- array(0, dim=c(n, p, p))
+  etamu <- array(0, dim=c(n, p))
   for (s in 1:n) {
-    #diag(Ycov[s,,]) <- diag(Psi)
-    Ycov[s,,] <- 0.01*diag(p) #Psi
+    etacov[s,,] <- 0.01*diag(p)
   }
   step.init <- step <- 0.1
 
@@ -78,7 +70,7 @@ micore <- function(counts, X, C0, nu0, Psi0, Gamma0, nuGamma,
     sigma.zero <- adapt.control$sigma.zero
   }
 
-  Y.accepted <- matrix(0, tot.samp, n)
+  eta.accepted <- matrix(0, tot.samp, n)
   calc.accept.probs <- matrix(0, tot.samp, n)
 
   # Sample parameters
@@ -89,83 +81,79 @@ micore <- function(counts, X, C0, nu0, Psi0, Gamma0, nuGamma,
       if (i%%100==0) cat("Sample number: ", i, "\n")
     }
 
-    gamma <- sampGamma(Y, X, A, B, Psi.inv)
+    gamma <- sampgamma_i(eta, X, A, B, Psi.inv)
     Xg <- cbind(X, diag(gamma)%*%X)
-    C <- sampC(Y, Xg, Psi, C0, V0inv, r)
+    C <- sampC(eta, Xg, Psi, C0, V0inv)
     A <- C[,1:q]
     B <- C[,(q+1):(2*q)]
 
-    Psi <- sampPsi(Y, Xg, C, C0, V0inv, Psi0, nu0)
+    Psi <- sampPsi(eta, Xg, C, C0, V0inv, Psi0, nu0)
     Psi.inv <- qr.solve(Psi)
 
     Gamma <- sampGamma(C, C0, Psi.inv, Gamma0, nuGamma)
     Gamma.inv <- qr.solve(Gamma)
 
-    Yobject <- sampY(Y, counts, X, Xg, Psi, C, sigma.zero, Ycov)
-    Y <- Yobject$samp
-    Y.accepted[i,] <- Yobject$accept
-    calc.accept.probs[i,] <- Yobject$acc.prob
+    etaobject <- sampeta(eta, counts, X, Xg, Psi, C, sigma.zero, Ycov)
+    eta <- etaobject$samp
+    eta.accepted[i,] <- etaobject$accept
+    calc.accept.probs[i,] <- etaobject$acc.prob
 
     if (i>1) {
-      yym <- Y - Ymu
-      sigma.zero <- sigma.zero*exp(step*(Yobject$acc.prob - target.accept.rate))
-      Ymu <- Ymu + step*yym
+      yym <- eta - etamu
+      sigma.zero <- sigma.zero*exp(step*(etaobject$acc.prob - target.accept.rate))
+      etamu <- Ymu + step*yym
       for (s in 1:n) {
-        Ycov[s,,] <- Ycov[s,,] + step*(tcrossprod(yym[s,]) - Ycov[s,,])
+        etacov[s,,] <- etacov[s,,] + step*(tcrossprod(yym[s,]) - etacov[s,,])
       }
 
       step <- step.init/(i)^a
     }
-    if (save.Ycov) {
-      Ycov.s[i,,,] <- Ycov
+    if (save.eta.cov) {
+      etacov.s[i,,,] <- etacov
     }
     sigma.zero.s[i,] <- sigma.zero
 
     if (i > n.burn) {
       idx <- i - n.burn
-      Y.s[idx,,] <- Y
+      eta.s[idx,,] <- eta
       Psi.s[idx,,] <- Psi
       A.s[idx,,] <- C[,1:q]
       B.s[idx,,] <- C[,(q+1):(2*q)]
       gamma.s[idx,] <- gamma
-      r.s[idx] <- r
-      V0.s[idx,,] <- V0
+      Gamma.s[idx,,] <- Gamma
     }
   }
 
-  samp.acc.probs <- colSums(Y.accepted[(n.burn+1):tot.samp,])/n.samp
+  samp.acc.probs <- colSums(eta.accepted[(n.burn+1):tot.samp,])/n.samp
 
-  ret <- list(Y=Y.s, Psi=Psi.s, A=A.s, B=B.s, gamma=gamma.s, Y.accepted=Y.accepted, samp.acc.probs=samp.acc.probs,
-              sigma.zero=sigma.zero.s, r=r.s, V0=V0.s, acc.probs=calc.accept.probs)
-  if (save.Ycov) {
-    ret$Ycov <- Ycov.s
+  ret <- list(eta=eta.s, Psi=Psi.s, A=A.s, B=B.s, gamma=gamma.s, Y.accepted=Y.accepted, samp.acc.probs=samp.acc.probs,
+              sigma.zero=sigma.zero.s, Gamma=Gamma.s, acc.probs=calc.accept.probs)
+  if (save.eta.cov) {
+    ret$etacov <- etacov.s
   }
 
   return(ret)
 }
 
-# Sample Psi from inverse-Wishart dist
-sampPsi <- function(Y, Xg, C, C0, V0inv, Psi0, nu0) {
+sampPsi <- function(eta, Xg, C, C0, Gammainv, Psi0, nuPsi) {
   n <- NROW(Xg)
-  p <- NCOL(Y)
+  p <- NCOL(eta)
   q <- NCOL(C)/2
 
-  V0inv <- V0inv
-  d <- Y - tcrossprod(Xg, C)
-  df <- nu0 + n + 2*q
-  Wpar <- qr.solve(Psi0 + crossprod(d) + tcrossprod((C-C0)%*%V0inv, (C-C0)))
+  d <- eta - tcrossprod(Xg, C)
+  df <- nuPsi + n + 2*q
+  Wpar <- qr.solve(Psi0 + crossprod(d) + tcrossprod((C-C0)%*%Gammainv, (C-C0)))
 
   return(qr.solve(rWishart(1, df, Wpar)[,,1]))
 }
 
-# Sample the gamma_i values from normal dist
-sampGamma <- function(Y, X, A, B, Psi.inv) {
+sampgamma_i <- function(eta, X, A, B, Psi.inv) {
   n <- NROW(Y)
 
   bx <- tcrossprod(B, X)
   pi.bx <- Psi.inv%*%bx
   den <- diag(crossprod(bx, pi.bx)) + 1
-  ya <- t(Y) - tcrossprod(A, X)
+  ya <- t(eta) - tcrossprod(A, X)
   num <- diag(crossprod(ya, pi.bx))
 
   return(rnorm(n, num/den, 1/sqrt(den)))
@@ -180,5 +168,121 @@ sampGamma <- function(C, C0, Psi.inv, Gamma0, nuGamma) {
   return(rWishart(1, nuGamma+p, mat)[,,1])
 }
 
+sampC <- function(eta, Xg, Psi, C0, Gammainv) {
+  xgt.inv <- qr.solve(crossprod(Xg) + Gammainv)
+  M <- (crossprod(eta, Xg) + C0%*%Gammainv)%*%xgt.inv
 
+  return(rmatnorm(M, Psi, xgt.inv))
+}
+
+rmatnorm <- function(M, rowCov, colCov) {
+  n.row <- NROW(M)
+  n.col <- NCOL(M)
+
+  cc <- chol(colCov)
+  rc <- chol(rowCov)
+
+  s.norm <- matrix(rnorm(n.row*n.col), n.row, n.col)
+
+  return(M + crossprod(rc, s.norm)%*%cc)
+}
+
+sampeta <- function(etac, counts, X, Xg, Psi, C, sigma.zero, etacov) {
+  n <- NROW(etac)
+  p <- NCOL(etac)
+  q <- NCOL(X)
+
+  # Mean to go into multivar normal dist
+  mean.norm <- tcrossprod(Xg, C)
+
+  B <- C[,(q+1):(2*q)]
+
+  # Generate proposal values of eta
+  etasamp <- matrix(0, n, p)
+  accepted <- rep(0, n)
+  acc.prob <- rep(0, n)
+  for (i in 1:n) {
+    etaprop <- mvnfast::rmvn(1, etac[i,], sigma.zero[i]*etacov[i,,])
+
+    lr.obj <- evalPostLR(counts[i,], etaprop, etac[i,], Psi, mean.norm[i,])
+    post.log.ratio <- lr.obj
+    r <- log(runif(1))
+
+    # Pick sampled value based on posterior ratio
+    if(r<post.log.ratio) {
+      etasamp[i,] <- etaprop
+      accepted[i] <- 1
+    } else {
+      etasamp[i,] <- etac[i,]
+      accepted[i] <- 0
+    }
+
+    acc.prob[i] <- min(1, exp(post.log.ratio))
+  }
+
+  return(list(samp=etasamp, accept=accepted, acc.prob=acc.prob))
+}
+
+evalPostLR <- function(counts_i, etai_num, etai_den, Psi, mean.norm) {
+  p <- length(etai_num)
+
+  pr.num.unscaled <- c(exp(etai_num), 1)
+  pr.den.unscaled <- c(exp(etai_den), 1)
+
+  post_log_ratio <- dmultinom(counts_i, prob=pr.num.unscaled, log = TRUE) -
+    dmultinom(counts_i, prob=pr.den.unscaled, log = TRUE) +
+    mvnfast::dmvn(etai_num, mean.norm, Psi, log = TRUE) -
+    mvnfast::dmvn(etai_den, mean.norm, Psi, log = TRUE)
+
+  return(post_log_ratio)
+}
+
+runEM <- function(eta, X, n.iter=10, quiet=TRUE, trace=FALSE) {
+  n <- NROW(eta)
+  p <- NCOL(eta)
+  q <- NCOL(X)
+
+    Psi.inv <- qr.solve(cov(eta))
+  C <- matrix(1, p, 2*q)
+
+  if (trace) C.tr <- array(0, dim=c(n.iter, p, 2*q))
+
+  for (i in 1:n.iter) {
+    A <- C[,1:q]
+    B <- C[,(q+1):(2*q)]
+
+    bx <- tcrossprod(B, X)
+    pi.bx <- Psi.inv%*%bx
+    v <- 1/(diag(crossprod(bx, pi.bx)) + 1)
+    ya <- t(eta) - tcrossprod(A, X)
+    num <- diag(crossprod(ya, pi.bx))
+    m <- num*v
+    s <- sqrt(v)
+
+    Xp <- rbind(cbind(X, m*X), cbind(matrix(0, n, q), s*X))
+    etap <- rbind(Y, matrix(0, n, p))
+    C <- crossprod(etap, Xp)%*%qr.solve(crossprod(Xp))
+    if (!quiet) {print(C); cat("\n")}
+    if (trace) C.tr[i,,] <- C
+  }
+
+  if (trace) {
+    ret <- list(C=C, ms=c(m,s), trace=C.tr)
+  } else {
+    ret <- list(C=C, ms=c(m,s))
+  }
+
+  return(ret)
+}
+
+getPsiEst <- function(eta, X, C0, ms) {
+  n <- NROW(Y)
+  p <- NCOL(eta)
+  q <- NCOL(X)
+
+  Xp <- rbind(cbind(X, ms[1]*X), cbind(matrix(0, n, q), ms[2]*X))
+  etap <- rbind(eta, matrix(0, n, p))
+  YXc <- etap - tcrossprod(Xp, C0)
+  return(crossprod(YXc)/n)
+}
 
