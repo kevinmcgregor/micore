@@ -20,7 +20,7 @@
 #' @export
 #'
 #' @examples
-micore <- function(counts, X, C0, nu0, Psi0, Gamma0, nuGamma,
+micore <- function(counts, X, C0=NULL, Psi0=NULL, Gamma0=NULL, nuPsi=NULL, nuGamma=NULL,
                       target.accept.rate=0.23, n.samp=4000, n.burn=4000,
                       adapt.control=NULL, save.eta.cov=FALSE, verbose=FALSE) {
   n <- NROW(counts)
@@ -28,17 +28,22 @@ micore <- function(counts, X, C0, nu0, Psi0, Gamma0, nuGamma,
   q <- NCOL(X)
   tot.samp <- n.samp + n.burn
 
+  # Set hyperparameters
+  lr.counts <- compositions::alr(counts+1)
+  hp <- setHyper(lr.counts, X, C0, Psi0, Gamma0, nuPsi, nuGamma)
+
   #Initialize parameters
-  eta <- compositions::alr(counts+1)
+  eta <- lr.counts
   Psi <- cov(eta)
   Psi.inv <- qr.solve(Psi)
   gamma <- rnorm(n)
   Xg <- cbind(X, diag(gamma)%*%X)
-  C <- matrix(C0, p, 2*q)
+  C <- matrix(hp$C0, p, 2*q)
   A <- C[,1:q]
   B <- C[,(q+1):(2*q)]
-  V0inv <- qr.solve(V0)
+  obs.prec = qr.solve(crossprod(X))
   Gamma <- n*as.matrix(Matrix::bdiag(obs.prec, obs.prec))
+  Gammainv <- qr.solve(Gamma)
 
   # Containers for sampled values
   eta.s <- array(dim=c(n.samp, n, p))
@@ -56,12 +61,15 @@ micore <- function(counts, X, C0, nu0, Psi0, Gamma0, nuGamma,
   for (s in 1:n) {
     etacov[s,,] <- 0.01*diag(p)
   }
-  step.init <- step <- 0.1
 
   if (is.null(adapt.control$a)) {
-    a <- 1e-04
+    a <- 0.5
   } else {
     a <- adapt.control$a
+  }
+
+  if (is.null(adapt.control$init)) {
+    step.init <- step <- 0.1
   }
 
   if (is.null(adapt.control$sigma.zero)) {
@@ -83,17 +91,17 @@ micore <- function(counts, X, C0, nu0, Psi0, Gamma0, nuGamma,
 
     gamma <- sampgamma_i(eta, X, A, B, Psi.inv)
     Xg <- cbind(X, diag(gamma)%*%X)
-    C <- sampC(eta, Xg, Psi, C0, V0inv)
+    C <- sampC(eta, Xg, Psi, hp$C0, Gammainv)
     A <- C[,1:q]
     B <- C[,(q+1):(2*q)]
 
-    Psi <- sampPsi(eta, Xg, C, C0, V0inv, Psi0, nu0)
+    Psi <- sampPsi(eta, Xg, C, hp$C0, Gammainv, hp$Psi0, hp$nuPsi)
     Psi.inv <- qr.solve(Psi)
 
-    Gamma <- sampGamma(C, C0, Psi.inv, Gamma0, nuGamma)
+    Gamma <- sampGamma(C, hp$C0, Psi.inv, hp$Gamma0, hp$nuGamma)
     Gamma.inv <- qr.solve(Gamma)
 
-    etaobject <- sampeta(eta, counts, X, Xg, Psi, C, sigma.zero, Ycov)
+    etaobject <- sampeta(eta, counts, X, Xg, Psi, C, sigma.zero, etacov)
     eta <- etaobject$samp
     eta.accepted[i,] <- etaobject$accept
     calc.accept.probs[i,] <- etaobject$acc.prob
@@ -101,7 +109,7 @@ micore <- function(counts, X, C0, nu0, Psi0, Gamma0, nuGamma,
     if (i>1) {
       yym <- eta - etamu
       sigma.zero <- sigma.zero*exp(step*(etaobject$acc.prob - target.accept.rate))
-      etamu <- Ymu + step*yym
+      etamu <- etamu + step*yym
       for (s in 1:n) {
         etacov[s,,] <- etacov[s,,] + step*(tcrossprod(yym[s,]) - etacov[s,,])
       }
@@ -126,13 +134,35 @@ micore <- function(counts, X, C0, nu0, Psi0, Gamma0, nuGamma,
 
   samp.acc.probs <- colSums(eta.accepted[(n.burn+1):tot.samp,])/n.samp
 
-  ret <- list(eta=eta.s, Psi=Psi.s, A=A.s, B=B.s, gamma=gamma.s, Y.accepted=Y.accepted, samp.acc.probs=samp.acc.probs,
+  ret <- list(eta=eta.s, Psi=Psi.s, A=A.s, B=B.s, gamma=gamma.s, eta.accepted=eta.accepted, samp.acc.probs=samp.acc.probs,
               sigma.zero=sigma.zero.s, Gamma=Gamma.s, acc.probs=calc.accept.probs)
   if (save.eta.cov) {
     ret$etacov <- etacov.s
   }
 
   return(ret)
+}
+
+setHyper <- function(lr.counts, X, C0, Psi0, Gamma0, nuPsi, nuGamma) {
+  p <- NCOL(lr.counts)
+  q <- NCOL(X)
+  if (is.null(C0)) {
+    C0 <- runEM(lr.counts, X, n.iter=10)$C
+  }
+  if (is.null(Psi0)) {
+    Psi0 <- cov(lr.counts)
+  }
+  if (is.null(Gamma0)) {
+    Gamma0 <- diag(2*q)
+  }
+  if (is.null(nuPsi)) {
+    nuPsi <- p
+  }
+  if (is.null(nuGamma)) {
+    nuGamma <- 2*q
+  }
+
+  return(list(C0=C0, Psi0=Psi0, Gamma0=Gamma0, nuPsi=nuPsi, nuGamma=nuGamma))
 }
 
 sampPsi <- function(eta, Xg, C, C0, Gammainv, Psi0, nuPsi) {
@@ -148,7 +178,7 @@ sampPsi <- function(eta, Xg, C, C0, Gammainv, Psi0, nuPsi) {
 }
 
 sampgamma_i <- function(eta, X, A, B, Psi.inv) {
-  n <- NROW(Y)
+  n <- NROW(eta)
 
   bx <- tcrossprod(B, X)
   pi.bx <- Psi.inv%*%bx
@@ -260,7 +290,7 @@ runEM <- function(eta, X, n.iter=10, quiet=TRUE, trace=FALSE) {
     s <- sqrt(v)
 
     Xp <- rbind(cbind(X, m*X), cbind(matrix(0, n, q), s*X))
-    etap <- rbind(Y, matrix(0, n, p))
+    etap <- rbind(eta, matrix(0, n, p))
     C <- crossprod(etap, Xp)%*%qr.solve(crossprod(Xp))
     if (!quiet) {print(C); cat("\n")}
     if (trace) C.tr[i,,] <- C
@@ -276,7 +306,7 @@ runEM <- function(eta, X, n.iter=10, quiet=TRUE, trace=FALSE) {
 }
 
 getPsiEst <- function(eta, X, C0, ms) {
-  n <- NROW(Y)
+  n <- NROW(eta)
   p <- NCOL(eta)
   q <- NCOL(X)
 
