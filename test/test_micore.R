@@ -18,7 +18,10 @@ library(micore)
 mc.fit <- micore(counts, X, n.burn = n.burn, n.samp = n.samp,
                  n.chain=4, verbose=TRUE)
 
-merge <- mergeChains(mc.fit)
+m.pars <- mergeChainsAll(mc.fit)
+
+
+
 
 
 
