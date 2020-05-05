@@ -21,8 +21,25 @@
 #'
 #' @examples
 micore <- function(counts, X, C0=NULL, Psi0=NULL, Gamma0=NULL, nuPsi=NULL, nuGamma=NULL,
-                      target.accept.rate=0.23, n.samp=4000, n.burn=4000,
+                      n.chain=4, n.cores=n.chain, target.accept.rate=0.23, n.samp=4000, n.burn=4000,
                       adapt.control=NULL, save.eta.cov=FALSE, verbose=FALSE) {
+
+  count.in <- lapply(1:n.chain, function(x) return(counts))
+  mc.fit <- parallel::mclapply(count.in, mc, Xt=X, C0=C0, Psi0=Psi0, Gamma0=Gamma0,
+                     nuPsi=nuPsi, nuGamma=nuGamma,
+               target.accept.rate=target.accept.rate, n.samp=n.samp, n.burn=n.burn,
+               adapt.control=adapt.control, save.eta.cov=save.eta.cov, verbose=verbose)
+
+  class(mc.fit) <- "micore"
+  return(mc.fit)
+}
+
+# Main function for running micore (not exported)
+mc <- function(counts, Xt, C0=NULL, Psi0=NULL, Gamma0=NULL, nuPsi=NULL, nuGamma=NULL,
+               target.accept.rate=0.23, n.samp=4000, n.burn=4000,
+               adapt.control=NULL, save.eta.cov=FALSE, verbose=FALSE) {
+  X <- Xt # X parameter clashes in mclapply
+
   n <- NROW(counts)
   p <- NCOL(counts)-1
   q <- NCOL(X)
@@ -135,7 +152,8 @@ micore <- function(counts, X, C0=NULL, Psi0=NULL, Gamma0=NULL, nuPsi=NULL, nuGam
   samp.acc.probs <- colSums(eta.accepted[(n.burn+1):tot.samp,])/n.samp
 
   ret <- list(eta=eta.s, Psi=Psi.s, A=A.s, B=B.s, gamma=gamma.s, eta.accepted=eta.accepted, samp.acc.probs=samp.acc.probs,
-              sigma.zero=sigma.zero.s, Gamma=Gamma.s, acc.probs=calc.accept.probs)
+              sigma.zero=sigma.zero.s, Gamma=Gamma.s, acc.probs=calc.accept.probs,
+              counts=counts, X=X)
   if (save.eta.cov) {
     ret$etacov <- etacov.s
   }
@@ -315,4 +333,22 @@ getPsiEst <- function(eta, X, C0, ms) {
   YXc <- etap - tcrossprod(Xp, C0)
   return(crossprod(YXc)/n)
 }
+
+predict.micore <- function(obj, new.data) {
+  return(1+3)
+}
+
+mergeChains <- function(obj) {
+  if (class(obj)!="micore") stop("obj must be of class \"micore\"")
+
+  A.merge <- do.call(abind::abind, args=list(lapply(obj, function(x){x$A}), along=1))
+  B.merge <- do.call(abind::abind, args=list(lapply(obj, function(x){x$B}), along=1))
+  Psi.merge <- do.call(abind::abind, args=list(lapply(obj, function(x){x$Psi}), along=1))
+  gamma.merge <- do.call(abind::abind, args=list(lapply(obj, function(x){x$gamma}), along=1))
+  Gamma.merge <- do.call(abind::abind, args=list(lapply(obj, function(x){x$Gamma}), along=1))
+
+  return(list(A=A.merge, B=B.merge, Psi=Psi.merge, gamma=gamma.merge, Gamma=Gamma.merge))
+}
+
+
 

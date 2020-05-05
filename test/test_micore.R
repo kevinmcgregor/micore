@@ -11,10 +11,14 @@ for (i in 1:n) {
   counts[i,] <- rmultinom(1, size=100, prob=rep(1,p+1))
 }
 
-n.burn <- 2000
-n.samp <- 2000
+n.burn <- 200
+n.samp <- 200
 
 library(micore)
-mc.fit <- micore(counts, X, n.burn = n.burn, n.samp = n.samp, verbose=TRUE)
+mc.fit <- micore(counts, X, n.burn = n.burn, n.samp = n.samp,
+                 n.chain=4, verbose=TRUE)
+
+merge <- mergeChains(mc.fit)
+
 
 
