@@ -20,8 +20,18 @@ mc.fit <- micore(counts, X, n.burn = n.burn, n.samp = n.samp,
 
 m.pars <- mergeChainsAll(mc.fit)
 
+new.dat <- cbind(c(1,1,1),c(0,1,0))
+pred <- predict(mc.fit, newdata=new.dat)
+pred.p <- predict(mc.fit, newdata=cbind(c(1,1,1),c(0,1,0)), "prop")
+pred.all <- predict(mc.fit, type = "prop", post.stat="median")
 
+p.cov <- getPredCov(mc.fit)
+p.cov <- getPredCov(mc.fit, newdata = new.dat)
+p.cor <- getPredCov(mc.fit, newdata = new.dat, type = "cor")
+p.prec <- getPredCov(mc.fit, newdata = new.dat, type = "prec")
+p.pcor <- getPredCov(mc.fit, newdata = new.dat, post.stat = "median", type = "pcor")
+p.pcor <- getPredCov(mc.fit, newdata = new.dat, quant=c(0.2,0.8))
 
-
+trplot(mc.fit, par="gamma", 1)
 
 

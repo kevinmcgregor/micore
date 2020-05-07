@@ -172,10 +172,10 @@ getPsiEst <- function(eta, X, C0, ms) {
   return(crossprod(YXc)/n)
 }
 
-getPredMean <- function(A, x, type=c("alr", "proportion")) {
-  scale <- match.arg(scale)
+getPredMean <- function(A, X, type=c("alr", "proportion")) {
+  type <- match.arg(type)
 
-  Ax <- x%*%t(A)
+  Ax <- tcrossprod(X, A)
   if (type=="alr") {
     r <- Ax
   } else {
@@ -199,43 +199,123 @@ predict.micore <- function(obj, newdata=NULL, type=c("alr", "proportion"),
     X <- newdata
   }
 
+  n <- NROW(X)
+
   A.s <- mergeChains(obj, "A")
 
   n.s <- dim(A.s)[1]
   p <- NCOL(A.s)
-  if (scale=="alr") {
-    Ax <- matrix(0, n.s, p)
+  if (type=="alr") {
+    Ax <- array(0, dim=c(n.s, n, p))
   } else {
-    Ax <- matrix(0, n.s, p+1)
+    Ax <- array(0, dim=c(n.s, n, p+1))
   }
 
   for (i in 1:n.s) {
-    Ax[i,] <- getPredMean(A.s[i,,], as.vector(x), scale)
+    Ax[i,,] <- getPredMean(A.s[i,,], X, type)
   }
 
   qtile <- vector("list", length = length(quant))
   for (q in 1:length(quant)) {
-    qtile[[q]] <- apply(Ax, 2, quantile, probs=quant[q])
+    qtile[[q]] <- apply(Ax, 2:3, quantile, probs=quant[q])
   }
 
   fn <- ifelse(post.stat=="mean", mean, median)
-  stat <- apply(Ax, 2, fn)
+  stat <- apply(Ax, 2:3, fn)
 
   names(qtile) <- paste0(quant*100, "%")
 
-  return(list(fit=stat, quant=quant))
+  return(list(fit=stat, quant=qtile))
 }
 
-mergeChainsAll <- function(obj) {
-  if (class(obj)!="micore") stop("obj must be of class \"micore\"")
-  pars <- c("A", "B", "Psi", "eta", "gamma", "Gamma")
-  r <- vector("list", length(pars))
-  names(r) <- pars
-  for (par in pars) {
-    r[[par]] <- mergeChains(obj, par)
+getC <- function(Psi, B, x, type=c("cov","cor","prec", "pcor")) {
+  Bx <- B%*%x
+  if (type=="prec" | type=="pcor") {
+    Psi.inv <- qr.solve(Psi)
+    bxp <- tcrossprod(Bx)%*%Psi.inv
+    tr.bxp <- sum(diag(bxp))
+    ret <- Psi.inv - 1/(1+tr.bxp)*Psi.inv%*%bxp
+    if (type=="pcor") {
+      ret <- -cov2cor(ret)
+      diag(ret) <- 1
+    }
+  } else {
+    ret <- Psi + tcrossprod(Bx)
+    if (type=="cor") {
+      ret <- cov2cor(ret)
+    }
   }
-  return(r)
+
+  return(ret)
 }
+
+getPredCov <- function(obj, newdata=NULL, quant=c(0.025, 0.975),
+                   type=c("cov","cor","prec", "pcor"),
+                   post.stat=c("mean", "median")) {
+  if (class(obj)!="micore") stop("obj must be of class \"micore\"")
+  type <- match.arg(type)
+  post.stat <- match.arg(post.stat)
+
+  if (is.null(newdata)) {
+    X <- obj[[1]]$X
+  } else {
+    X <- newdata
+  }
+
+  B.s <- mergeChains(obj, "B")
+  Psi.s <- mergeChains(obj, "Psi")
+
+  n <- NROW(X)
+  n.s <- dim(Psi.s)[1]
+  p <- NCOL(Psi.s)
+  Sig <- array(0, dim=c(n.s, n, p, p))
+
+  type <- match.arg(type)
+
+  for (i in 1:n.s) {
+    for (j in 1:n) {
+      x.cur <- X[j,]
+      Sig[i,j,,] <- getC(Psi.s[i,,], B.s[i,,], as.vector(x.cur), type)
+    }
+  }
+
+  qtile <- vector("list", length = length(quant))
+  for (q in 1:length(quant)) {
+    qtile[[q]] <- apply(Sig, 2:4, quantile, probs=quant[q])
+  }
+
+  fn <- ifelse(post.stat=="mean", mean, median)
+  stat <- apply(Sig, 2:4, fn)
+
+  names(qtile) <- paste0(quant*100, "%")
+
+  return(list(fit=stat, quant=qtile))
+}
+
+getPost <- function(Psi.s, B.s, x, quant=c(0.025, 0.975), type=c("cov","cor","prec", "pcor")) {
+  n.s <- dim(Psi.s)[1]
+  p <- NCOL(Psi.s)
+  Sig <- array(0, dim=c(n.s, p, p))
+
+  type <- match.arg(type)
+
+  for (i in 1:n.s) {
+    Sig[i,,] <- getPredCov(Psi.s[i,,], B.s[i,,], as.vector(x), type)
+  }
+
+  qtile <- vector("list", length = length(quant))
+  for (q in 1:length(quant)) {
+    qtile[[q]] <- apply(Sig, 2:3, quantile, probs=quant[q])
+  }
+
+  mean <- apply(Sig, 2:3, mean)
+  median <- apply(Sig, 2:3, median)
+
+  names(qtile) <- paste0(quant*100, "%")
+
+  return(list(mean=mean, median=median, interval=qtile, samples=Sig))
+}
+
 
 mergeChains <- function(obj, par=c("A", "B", "Psi", "eta", "gamma", "Gamma")) {
   if (class(obj)!="micore") stop("obj must be of class \"micore\"")
@@ -243,3 +323,35 @@ mergeChains <- function(obj, par=c("A", "B", "Psi", "eta", "gamma", "Gamma")) {
   m <- do.call(abind::abind, args=list(lapply(obj, function(x){x[[par]]}), along=1))
   return(m)
 }
+
+trplot <- function(obj, par=c("A", "B", "Psi", "eta", "gamma", "Gamma"), ind, ...) {
+  if (class(obj)!="micore") stop("obj must be of class \"micore\"")
+  par <- match.arg(par)
+  n.chain <- length(obj)
+
+  if (par=="gamma") {
+    b.only = lapply(obj, function(x) return(x[[par]][,ind[1]]))
+  } else {
+    b.only = lapply(obj, function(x) return(x[[par]][,ind[1],ind[2]]))
+  }
+  bind = do.call(c, b.only)
+  rge = range(bind)
+
+  col <- rainbow(n.chain)
+  for (ch in 1:n.chain) {
+    if (ch==1) {
+      if (par=="gamma") {
+        plot(obj[[ch]][[par]][,ind[1]], type="l", col=col[ch], ylim=rge, ...)
+      } else {
+        plot(obj[[ch]][[par]][,ind[1],ind[2]], type="l", col=col[ch], ylim=rge, ...)
+      }
+    } else {
+      if (par=="gamma") {
+        lines(obj[[ch]][[par]][,ind[1]], col=col[ch])
+      } else {
+        lines(obj[[ch]][[par]][,ind[1],ind[2]], col=col[ch])
+      }
+    }
+  }
+}
+
