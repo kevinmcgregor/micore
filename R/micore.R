@@ -24,6 +24,7 @@ micore <- function(counts, X, C0=NULL, Psi0=NULL, Gamma0=NULL, nuPsi=NULL, nuGam
                       n.chain=4, n.cores=n.chain, target.accept.rate=0.23, n.samp=4000, n.burn=4000,
                       adapt.control=NULL, save.eta.cov=FALSE, verbose=FALSE) {
 
+
   count.in <- lapply(1:n.chain, function(x) return(counts))
   mc.fit <- parallel::mclapply(count.in, mc, Xt=X, C0=C0, Psi0=Psi0, Gamma0=Gamma0,
                      nuPsi=nuPsi, nuGamma=nuGamma,
