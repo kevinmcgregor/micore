@@ -32,6 +32,6 @@ p.prec <- getPredCov(mc.fit, newdata = new.dat, type = "prec")
 p.pcor <- getPredCov(mc.fit, newdata = new.dat, post.stat = "median", type = "pcor")
 p.pcor <- getPredCov(mc.fit, newdata = new.dat, quant=c(0.2,0.8))
 
-trplot(mc.fit, par="gamma", 1)
+trplot(mc.fit, par="gamma", 3)
 
 

@@ -324,7 +324,8 @@ mergeChains <- function(obj, par=c("A", "B", "Psi", "eta", "gamma", "Gamma")) {
   return(m)
 }
 
-trplot <- function(obj, par=c("A", "B", "Psi", "eta", "gamma", "Gamma"), ind, ...) {
+trplot <- function(obj, par=c("A", "B", "Psi", "eta", "gamma", "Gamma"), ind, xlab=NULL,
+                   ylab=NULL, ...) {
   if (class(obj)!="micore") stop("obj must be of class \"micore\"")
   par <- match.arg(par)
   n.chain <- length(obj)
@@ -337,13 +338,23 @@ trplot <- function(obj, par=c("A", "B", "Psi", "eta", "gamma", "Gamma"), ind, ..
   bind = do.call(c, b.only)
   rge = range(bind)
 
+  if (is.null(xlab)) xlab <- "Sample number"
+  if (is.null(ylab)) {
+    if (par=="gamma") {
+      ylab <- paste0(par, "[", ind[1], "]")
+    } else {
+      ylab <- paste0(par, "[", ind[1], ", ", ind[2], "]")
+    }
+  }
   col <- rainbow(n.chain)
   for (ch in 1:n.chain) {
     if (ch==1) {
       if (par=="gamma") {
-        plot(obj[[ch]][[par]][,ind[1]], type="l", col=col[ch], ylim=rge, ...)
+        plot(obj[[ch]][[par]][,ind[1]], type="l", col=col[ch], ylim=rge,
+             xlab=xlab, ylab=ylab, ...)
       } else {
-        plot(obj[[ch]][[par]][,ind[1],ind[2]], type="l", col=col[ch], ylim=rge, ...)
+        plot(obj[[ch]][[par]][,ind[1],ind[2]], type="l", col=col[ch], ylim=rge,
+             xlab=xlab, ylab=ylab, ...)
       }
     } else {
       if (par=="gamma") {
