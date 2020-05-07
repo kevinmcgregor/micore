@@ -1,11 +1,11 @@
 Package: micore
 Type: Package
-Title: What the Package Does (Title Case)
-Version: 0.1.0
-Author: Who wrote it
-Maintainer: The package maintainer <yourself@somewhere.net>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
-License: What license is it under?
+Title: Microbiome Covariance Regression
+Version: 0.0.0.9001
+Author: Kevin McGregor, Aurelie Labbe, Celia Greenwood
+Maintainer: Kevin McGregor <kevin.mcgregor@mail.mcgill.ca>
+Description: Performs covariance regression in a multinomial logistic-normal model to estimate
+how microbiome co-occurrence networks vary with respect to covariates.
+License: GPL (>=3)
 Encoding: UTF-8
 LazyData: true
