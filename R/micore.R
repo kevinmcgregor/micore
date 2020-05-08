@@ -24,10 +24,28 @@ micore <- function(counts, X, C0=NULL, Psi0=NULL, Gamma0=NULL, nuPsi=NULL, nuGam
                       n.chain=4, n.cores=n.chain, target.accept.rate=0.23, n.samp=4000, n.burn=4000,
                       adapt.control=NULL, save.eta.cov=FALSE, verbose=FALSE) {
 
+  # Checking input formatting
+  if (!is.matrix(counts) | any(counts<0) | any(floor(counts)!=counts)) stop("\"counts\" must be a matrix containing non-negative integers")
+  if (!is.matrix(X) | !is.numeric(X)) stop("\"X\" must be a numeric matrix")
+  if (n.chain<=0 | floor(n.chain)!=n.chain) stop("\"n.chain\" must be a positive integer")
+  if (n.cores<=0 | floor(n.cores)!=n.cores) stop("\"n.cores\" must be a positive integer")
+  if (target.accept.rate<=0 | target.accept.rate>=1) stop("\"target.accept.rate\" must be between 0 and 1")
+  if (n.samp<1 | floor(n.samp)!=n.samp) stop("\"n.samp\" must be a positive integer")
+  if (n.burn<=0 | floor(n.burn)!=n.burn) stop("\"n.burn\" must be a non-negative integer")
+
+  # Checking for dimension mismatches
+  if (NROW(counts)!=NROW(X)) stop("\"counts\" and \"X\" should have the same number of rows")
+
+  # Set hyperparameters
+  n <- NROW(counts)
+  p <- NCOL(counts)-1
+  q <- NCOL(X)
+  lr.counts <- compositions::alr(counts+1)
+  hp <- setHyper(lr.counts, X, C0, Psi0, Gamma0, nuPsi, nuGamma, n, p, q)
 
   count.in <- lapply(1:n.chain, function(x) return(counts))
-  mc.fit <- parallel::mclapply(count.in, mc, Xt=X, C0=C0, Psi0=Psi0, Gamma0=Gamma0,
-                     nuPsi=nuPsi, nuGamma=nuGamma,
+  mc.fit <- parallel::mclapply(count.in, mc, lr.counts=lr.counts, Xt=X,
+               C0=hp$C0, Psi0=hp$Psi0, Gamma0=hp$Gamma0, nuPsi=hp$nuPsi, nuGamma=hp$nuGamma,
                target.accept.rate=target.accept.rate, n.samp=n.samp, n.burn=n.burn,
                adapt.control=adapt.control, save.eta.cov=save.eta.cov, verbose=verbose)
 
@@ -36,7 +54,7 @@ micore <- function(counts, X, C0=NULL, Psi0=NULL, Gamma0=NULL, nuPsi=NULL, nuGam
 }
 
 # Main function for running micore (not exported)
-mc <- function(counts, Xt, C0=NULL, Psi0=NULL, Gamma0=NULL, nuPsi=NULL, nuGamma=NULL,
+mc <- function(counts, lr.counts, Xt, C0=NULL, Psi0=NULL, Gamma0=NULL, nuPsi=NULL, nuGamma=NULL,
                target.accept.rate=0.23, n.samp=4000, n.burn=4000,
                adapt.control=NULL, save.eta.cov=FALSE, verbose=FALSE) {
   X <- Xt # X parameter clashes in mclapply
@@ -46,17 +64,13 @@ mc <- function(counts, Xt, C0=NULL, Psi0=NULL, Gamma0=NULL, nuPsi=NULL, nuGamma=
   q <- NCOL(X)
   tot.samp <- n.samp + n.burn
 
-  # Set hyperparameters
-  lr.counts <- compositions::alr(counts+1)
-  hp <- setHyper(lr.counts, X, C0, Psi0, Gamma0, nuPsi, nuGamma)
-
   #Initialize parameters
   eta <- lr.counts
   Psi <- cov(eta)
   Psi.inv <- qr.solve(Psi)
   gamma <- rnorm(n)
   Xg <- cbind(X, diag(gamma)%*%X)
-  C <- matrix(hp$C0, p, 2*q)
+  C <- matrix(C0, p, 2*q)
   A <- C[,1:q]
   B <- C[,(q+1):(2*q)]
   obs.prec = qr.solve(crossprod(X))
@@ -109,14 +123,14 @@ mc <- function(counts, Xt, C0=NULL, Psi0=NULL, Gamma0=NULL, nuPsi=NULL, nuGamma=
 
     gamma <- sampgamma_i(eta, X, A, B, Psi.inv)
     Xg <- cbind(X, diag(gamma)%*%X)
-    C <- sampC(eta, Xg, Psi, hp$C0, Gammainv)
+    C <- sampC(eta, Xg, Psi, C0, Gammainv)
     A <- C[,1:q]
     B <- C[,(q+1):(2*q)]
 
-    Psi <- sampPsi(eta, Xg, C, hp$C0, Gammainv, hp$Psi0, hp$nuPsi)
+    Psi <- sampPsi(eta, Xg, C, C0, Gammainv, Psi0, nuPsi)
     Psi.inv <- qr.solve(Psi)
 
-    Gamma <- sampGamma(C, hp$C0, Psi.inv, hp$Gamma0, hp$nuGamma)
+    Gamma <- sampGamma(C, C0, Psi.inv, Gamma0, nuGamma)
     Gamma.inv <- qr.solve(Gamma)
 
     etaobject <- sampeta(eta, counts, X, Xg, Psi, C, sigma.zero, etacov)

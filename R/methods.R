@@ -1,21 +1,38 @@
 
-setHyper <- function(lr.counts, X, C0, Psi0, Gamma0, nuPsi, nuGamma) {
+setHyper <- function(lr.counts, X, C0, Psi0, Gamma0, nuPsi, nuGamma, n, p, q) {
   p <- NCOL(lr.counts)
   q <- NCOL(X)
   if (is.null(C0)) {
     C0 <- runEM(lr.counts, X, n.iter=10)$C
+  } else {
+    if (!is.matrix(C0) | !is.numeric(C0)) stop("\"C0\"  must be a numeric matrix")
+    if (NROW(C0)!=p | NCOL(C0)!=2*q) stop("\"C0\"  must have the same number of rows as \"X\" and two times the number of columns as \"X\" ")
   }
   if (is.null(Psi0)) {
     Psi0 <- cov(lr.counts)
+  } else {
+    if (!is.matrix(Psi0) | !is.numeric(Psi0)) stop("\"Psi0\"  must be a numeric matrix")
+    if (NROW(Psi0)!=p | NCOL(Psi0)!=p) stop("\"Psi0\" must be a square matrix with the same number of columns as \"counts\" minus one")
+    if (any(eigen(Psi0)$values<=0)) stop("\"Psi0\" must be positive-definite")
   }
   if (is.null(Gamma0)) {
     Gamma0 <- diag(2*q)
+  } else {
+    if (!is.matrix(Gamma0) | !is.numeric(Gamma0)) stop("\"Gamma0\"  must be a numeric matrix")
+    if (NROW(Gamma0)!=2*q | NCOL(Gamma0)!=2*q) stop("\"Gamma0\" must be a square matrix with two times the number of columns as \"X\" ")
+    if (any(eigen(Gamma0)$values<=0)) stop("\"Gamma0\" must be positive-definite")
   }
   if (is.null(nuPsi)) {
     nuPsi <- p
+  } else {
+    if (!is.numeric(nuPsi)) stop("\"nuPsi\" must be numeric")
+    if (nuPsi<=p-1) stop("\"nuPsi\" must be greater than the number of columns of \"counts\" minus two")
   }
   if (is.null(nuGamma)) {
     nuGamma <- 2*q
+  } else {
+    if (!is.numeric(nuGamma)) stop("\"nuGamma\" must be numeric")
+    if (nuGamma<=(2*q-1)) stop("\"nuGamma\" must be greater than two times the number of columns of \"X\" minus one")
   }
 
   return(list(C0=C0, Psi0=Psi0, Gamma0=Gamma0, nuPsi=nuPsi, nuGamma=nuGamma))
@@ -190,12 +207,17 @@ predict.micore <- function(obj, newdata=NULL, type=c("alr", "proportion"),
                            post.stat=c("mean", "median"),
                            quant=c(0.025, 0.975)) {
   if (class(obj)!="micore") stop("obj must be of class \"micore\"")
+  if (!is.numeric(quant) | any(quant<=0 | quant>=1)) stop("\"quant\" must be a numeric vector with elements between 0 and 1")
   type <- match.arg(type)
   post.stat <- match.arg(post.stat)
+
+  q.orig <- NCOL(obj[[1]]$X)
 
   if (is.null(newdata)) {
     X <- obj[[1]]$X
   } else {
+    if (!is.numeric(newdata) | !is.matrix(newdata)) stop("\"newdata\" must be a numeric matrix")
+    if (NCOL(newdata)!=q.orig) stop("The number of columns of \"newdata\" does not match with the model matrix in \"obj\" ")
     X <- newdata
   }
 
@@ -253,12 +275,17 @@ getPredCov <- function(obj, newdata=NULL, quant=c(0.025, 0.975),
                    type=c("cov","cor","prec", "pcor"),
                    post.stat=c("mean", "median")) {
   if (class(obj)!="micore") stop("obj must be of class \"micore\"")
+  if (!is.numeric(quant) | any(quant<=0 | quant>=1)) stop("\"quant\" must be a numeric vector with elements between 0 and 1")
   type <- match.arg(type)
   post.stat <- match.arg(post.stat)
+
+  q.orig <- NCOL(obj[[1]]$X)
 
   if (is.null(newdata)) {
     X <- obj[[1]]$X
   } else {
+    if (!is.numeric(newdata) | !is.matrix(newdata)) stop("\"newdata\" must be a numeric matrix")
+    if (NCOL(newdata)!=q.orig) stop("The number of columns of \"newdata\" does not match with the model matrix in \"obj\" ")
     X <- newdata
   }
 
@@ -365,4 +392,19 @@ trplot <- function(obj, par=c("A", "B", "Psi", "eta", "gamma", "Gamma"), ind, xl
     }
   }
 }
+
+print.micore <- function(obj) {
+  if (class(obj)!="micore") stop("obj must be of class \"micore\"")
+
+  n <- NROW(obj[[1]]$counts)
+  p <- NCOL(obj[[1]]$counts)
+  q <- NCOL(obj[[1]]$X)
+
+  n.chain <- length(obj)
+
+  cat("MiCoRe: Microbiome Covariance Regression\n")
+  cat(" ", n, "observations,", p-1, "OTUs (plus 1 reference OTU),", q-1, "covariates\n")
+  cat(" ", n.chain, "MCMC chains\n")
+}
+
 
