@@ -1,7 +1,7 @@
 Package: micore
 Type: Package
 Title: Microbiome Covariance Regression
-Version: 0.0.0.9001
+Version: 0.0.0.9002
 Author: Kevin McGregor, Aurelie Labbe, Celia Greenwood
 Maintainer: Kevin McGregor <kevin.mcgregor@mail.mcgill.ca>
 Description: Performs covariance regression in a multinomial logistic-normal model to estimate

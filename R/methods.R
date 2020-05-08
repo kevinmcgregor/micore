@@ -404,7 +404,7 @@ print.micore <- function(obj) {
 
   cat("MiCoRe: Microbiome Covariance Regression\n")
   cat(" ", n, "observations,", p-1, "OTUs (plus 1 reference OTU),", q-1, "covariates\n")
-  cat(" ", n.chain, "MCMC chains\n")
+  cat(" ", n.chain, "MCMC chains: each chain is a list element of this object\n")
 }
 
 
