@@ -5,19 +5,23 @@
 #' @param counts
 #' @param X
 #' @param C0
-#' @param V0
-#' @param nu0
 #' @param Psi0
 #' @param Gamma0
 #' @param nuGamma
 #' @param target.accept.rate
 #' @param n.samp
 #' @param n.burn
+#' @param nuPsi
+#' @param n.chain
+#' @param n.cores
+#' @param save.eta.cov
+#' @param verbose
 #' @param adapt.control
-#' @param save.Ycov
 #'
 #' @return
 #' @export
+#'
+#' @importFrom parallel mclapply
 #'
 #' @examples
 micore <- function(counts, X, C0=NULL, Psi0=NULL, Gamma0=NULL, nuPsi=NULL, nuGamma=NULL,

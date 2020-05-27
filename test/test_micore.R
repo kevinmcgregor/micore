@@ -18,8 +18,6 @@ library(micore)
 mc.fit <- micore(counts, X, n.burn = n.burn, n.samp = n.samp,
                  n.chain=4, n.cores=4, verbose=TRUE)
 
-m.pars <- mergeChainsAll(mc.fit)
-
 new.dat <- cbind(c(1,1,1),c(0,1,0))
 pred <- predict(mc.fit, newdata = new.dat)
 pred.p <- predict(mc.fit, newdata=cbind(c(1,1,1),c(0,1,0)), "prop")
