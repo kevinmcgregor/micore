@@ -1,7 +1,7 @@
 Package: micore
 Type: Package
 Title: Microbiome Covariance Regression
-Version: 0.0.0.9002
+Version: 0.0.0.9003
 Authors@R: c(person("Kevin", "McGregor", email="kevin.mcgregor@mail.mcgill.ca", role=c("aut", "cre")),
 	   person("Aurelie", "Labbe", email="aurelie.labbe@hec.ca", role="aut"),
 	   person("Celia", "Greenwood", email="celia.greenwood@mcgill.ca", role="aut"))

@@ -2,21 +2,21 @@
 
 #' Title
 #'
-#' @param counts
-#' @param X
-#' @param C0
-#' @param Psi0
-#' @param Gamma0
-#' @param nuGamma
-#' @param target.accept.rate
-#' @param n.samp
-#' @param n.burn
-#' @param nuPsi
-#' @param n.chain
-#' @param n.cores
-#' @param save.eta.cov
-#' @param verbose
-#' @param adapt.control
+#' @param counts Matrix containing OTU counts.  Rows are samples, columns are OTUs.
+#' @param X Design matrix contating covariates of interest. Rows are samples, columns are covariates.  Can include intercept column.
+#' @param C0 Prior mean for "C" parameter.  If null, then C0 is set automatically.
+#' @param Psi0 Prior inverse-Wishart matrix hyperparameter for "Psi" parameter.  If null, then Psi0 is set automatically.
+#' @param Gamma0 Prior inverse-Wishart matrix hyperparameter for "Gamma" parameter.  If null, then Gamma0 is set automatically.
+#' @param nuPsi Prior inverse-Wishart degrees of freedom for "Psi" parameter.  If null, then nuPsi is set automatically.
+#' @param nuGamma Prior inverse-Wishart degrees of freedom for "Gamma" parameter.  If null, then nuGamma is set automatically.
+#' @param target.accept.rate Target acceptance rate for adaptive Metropolis sampler.
+#' @param n.samp Number of MCMC samples
+#' @param n.burn Number of burn-in samples
+#' @param n.chain Number of independent MCMC chains to run in parallel
+#' @param n.cores Number of cores to use to parallelize the MCMC chains
+#' @param save.eta.cov Logical. Save the proposal distribution variance from the Metropolis sampler?  Caution, this will be large.
+#' @param verbose Logical. Output progress?
+#' @param adapt.control List contatining .
 #'
 #' @return
 #' @export
