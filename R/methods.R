@@ -192,6 +192,17 @@ getPsiEst <- function(eta, X, C0, ms) {
   return(crossprod(YXc)/n)
 }
 
+
+#' Title
+#'
+#' @param A
+#' @param X
+#' @param type
+#'
+#' @return
+#' @export
+#'
+#' @examples
 getPredMean <- function(A, X, type=c("alr", "proportion")) {
   type <- match.arg(type)
 
@@ -206,6 +217,18 @@ getPredMean <- function(A, X, type=c("alr", "proportion")) {
   return(r)
 }
 
+#' Title
+#'
+#' @param obj
+#' @param newdata
+#' @param type
+#' @param post.stat
+#' @param quant
+#'
+#' @return
+#' @export
+#'
+#' @examples
 predict.micore <- function(obj, newdata=NULL, type=c("alr", "proportion"),
                            post.stat=c("mean", "median"),
                            quant=c(0.025, 0.975)) {
@@ -274,6 +297,18 @@ getC <- function(Psi, B, x, type=c("cov","cor","prec", "pcor")) {
   return(ret)
 }
 
+#' Title
+#'
+#' @param obj
+#' @param newdata
+#' @param quant
+#' @param type
+#' @param post.stat
+#'
+#' @return
+#' @export
+#'
+#' @examples
 getPredCov <- function(obj, newdata=NULL, quant=c(0.025, 0.975),
                    type=c("cov","cor","prec", "pcor"),
                    post.stat=c("mean", "median")) {
@@ -347,6 +382,15 @@ getPost <- function(Psi.s, B.s, x, quant=c(0.025, 0.975), type=c("cov","cor","pr
 }
 
 
+#' Title
+#'
+#' @param obj
+#' @param par
+#'
+#' @return
+#' @export
+#'
+#' @examples
 mergeChains <- function(obj, par=c("A", "B", "Psi", "eta", "gamma", "Gamma")) {
   if (class(obj)!="micore") stop("obj must be of class \"micore\"")
   par <- match.arg(par)
@@ -354,6 +398,19 @@ mergeChains <- function(obj, par=c("A", "B", "Psi", "eta", "gamma", "Gamma")) {
   return(m)
 }
 
+#' Title
+#'
+#' @param obj
+#' @param par
+#' @param ind
+#' @param xlab
+#' @param ylab
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
 trplot <- function(obj, par=c("A", "B", "Psi", "eta", "gamma", "Gamma"), ind, xlab=NULL,
                    ylab=NULL, ...) {
   if (class(obj)!="micore") stop("obj must be of class \"micore\"")
@@ -396,6 +453,14 @@ trplot <- function(obj, par=c("A", "B", "Psi", "eta", "gamma", "Gamma"), ind, xl
   }
 }
 
+#' Title
+#'
+#' @param obj
+#'
+#' @return
+#' @export
+#'
+#' @examples
 print.micore <- function(obj) {
   if (class(obj)!="micore") stop("obj must be of class \"micore\"")
 
