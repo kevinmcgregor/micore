@@ -90,6 +90,8 @@ rmatnorm <- function(M, rowCov, colCov) {
   return(M + crossprod(rc, s.norm)%*%cc)
 }
 
+
+#' @importFrom mvnfast rmvn
 sampeta <- function(etac, counts, X, Xg, Psi, C, sigma.zero, etacov) {
   n <- NROW(etac)
   p <- NCOL(etac)
@@ -126,6 +128,7 @@ sampeta <- function(etac, counts, X, Xg, Psi, C, sigma.zero, etacov) {
   return(list(samp=etasamp, accept=accepted, acc.prob=acc.prob))
 }
 
+#' @importFrom mvnfast dmvn
 evalPostLR <- function(counts_i, etai_num, etai_den, Psi, mean.norm) {
   p <- length(etai_num)
 

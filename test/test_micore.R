@@ -15,8 +15,7 @@ n.burn <- 100
 n.samp <- 100
 
 library(micore)
-mc.fit <- micore(counts, X, n.burn = n.burn, n.samp = n.samp,
-                 n.chain=4, n.cores=4, verbose=TRUE)
+mc.fit <- micore(counts, X, n.burn = n.burn, n.samp = n.samp, n.chain=4, n.cores=4, verbose=TRUE)
 
 new.dat <- cbind(c(1,1,1),c(0,1,0))
 pred <- predict(mc.fit, newdata = new.dat)

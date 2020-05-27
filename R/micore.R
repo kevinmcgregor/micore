@@ -16,7 +16,7 @@
 #' @param n.cores Number of cores to use to parallelize the MCMC chains
 #' @param save.eta.cov Logical. Save the proposal distribution variance from the Metropolis sampler?  Caution, this will be large.
 #' @param verbose Logical. Output progress?
-#' @param adapt.control List contatining .
+#' @param adapt.control List contatining tuning parameters for adaptive MCMC part.  See .
 #'
 #' @return
 #' @export
