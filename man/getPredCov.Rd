@@ -2,7 +2,8 @@
 % Please edit documentation in R/methods.R
 \name{getPredCov}
 \alias{getPredCov}
-\title{Title}
+\title{Get the predicted covariance matrix based on the \code{micore} model fit. Can also
+return correlation, precision, and partial correlation matrices.}
 \usage{
 getPredCov(
   obj,
@@ -13,11 +14,25 @@ getPredCov(
 )
 }
 \arguments{
-\item{post.stat}{}
+\item{obj}{An object of class \code{micore}.}
+
+\item{newdata}{n optional numeric matrix containing covariates for new observations to get
+predicted covariance matrices for.}
+
+\item{quant}{Numeric vector specifying the quantiles of the posterior to return for predicted covariances.}
+
+\item{type}{Type of matrix to return: covariance, correlation, precision, or partial correlation.}
+
+\item{post.stat}{Character specifying whether the predictions be based on the posterior mean or median.}
 }
 \value{
-
+A list containing:
+\itemize{
+   \item \code{fit}: A matrix containing the posterior mean (or median) of the covariance matrix.
+   \item \code{quant}: A list containing the requested quantiles from the posterior mean for the covariance matrix.
+}
 }
 \description{
-Title
+Get the predicted covariance matrix based on the \code{micore} model fit. Can also
+return correlation, precision, and partial correlation matrices.
 }

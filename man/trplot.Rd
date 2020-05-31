@@ -2,7 +2,8 @@
 % Please edit documentation in R/methods.R
 \name{trplot}
 \alias{trplot}
-\title{Title}
+\title{Plots a traceplot for the different MCMC chains of a \code{micore} object
+for a specific parameter.}
 \usage{
 trplot(
   obj,
@@ -14,11 +15,39 @@ trplot(
 )
 }
 \arguments{
-\item{...}{}
+\item{obj}{An object of class \code{micore}}
+
+\item{par}{Character object specifying which parameter to make a traceplot for.}
+
+\item{ind}{For matrix parameters, a 2-dimensional vector specifying the element of
+the parameter matrix to make the traceplot for.}
+
+\item{xlab}{Label for the x-axis.}
+
+\item{ylab}{Label for the y-axis.}
+
+\item{...}{Other arguments passed to \code{plot}.}
 }
 \value{
-
+Makes a traceplot for the specified parameter.
 }
 \description{
-Title
+Plots a traceplot for the different MCMC chains of a \code{micore} object
+for a specific parameter.
+}
+\examples{
+
+n <- 50
+p <- 5
+X <- cbind(1, rnorm(n))
+counts <- matrix(0, n, p+1)
+for (i in 1:n) {
+  counts[i,] <- rmultinom(1, size=100, prob=rep(1,p+1))
+}
+
+library(micore)
+mc.fit <- micore(counts, X, n.samp=100, n.burn=100, n.chain=2)
+
+trplot(mc.fit, par="B", ind=c(1,2))
+
 }

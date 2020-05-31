@@ -2,16 +2,34 @@
 % Please edit documentation in R/methods.R
 \name{mergeChains}
 \alias{mergeChains}
-\title{Title}
+\title{Merge chains of MCMC run from \code{micore} object}
 \usage{
 mergeChains(obj, par = c("A", "B", "Psi", "eta", "gamma", "Gamma"))
 }
 \arguments{
-\item{par}{}
+\item{obj}{An object of class \code{micore}}
+
+\item{par}{Character object specifying which parameter to merge chains for.}
 }
 \value{
-
+An array with the merged MCMC samples from the specified parameter.  The
+first dimension of the array is the MCMC iteration.
 }
 \description{
-Title
+Merge chains of MCMC run from \code{micore} object
+}
+\examples{
+n <- 50
+p <- 5
+X <- cbind(1, rnorm(n))
+counts <- matrix(0, n, p+1)
+for (i in 1:n) {
+  counts[i,] <- rmultinom(1, size=100, prob=rep(1,p+1))
+}
+
+library(micore)
+mc.fit <- micore(counts, X, n.samp=100, n.burn=100, n.chain=2)
+
+Amerge <- mergeChains(mc.fit, par="B")
+
 }

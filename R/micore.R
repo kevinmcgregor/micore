@@ -100,7 +100,6 @@ micore <- function(counts, X, C0=NULL, Psi0=NULL, Gamma0=NULL, nuPsi=NULL, nuGam
   return(mc.fit)
 }
 
-#' Main function for running micore (not exported)
 #' @importFrom Matrix bdiag
 mc <- function(counts, lr.counts, Xt, C0=NULL, Psi0=NULL, Gamma0=NULL, nuPsi=NULL, nuGamma=NULL,
                target.accept.rate=0.23, n.samp=4000, n.burn=4000,

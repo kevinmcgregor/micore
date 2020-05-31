@@ -2,16 +2,18 @@
 % Please edit documentation in R/methods.R
 \name{print.micore}
 \alias{print.micore}
-\title{Title}
+\title{Print method for \code{micore} object.}
 \usage{
 \method{print}{micore}(x, ...)
 }
 \arguments{
-\item{x}{}
+\item{x}{An object of class \code{micore}}
+
+\item{...}{Further arguments passed to or from other methods}
 }
 \value{
-
+Prints information about \code{micore} object.
 }
 \description{
-Title
+Print method for \code{micore} object.
 }

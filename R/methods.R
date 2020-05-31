@@ -200,16 +200,6 @@ getPsiEst <- function(eta, X, C0, ms) {
 }
 
 
-#' Title
-#'
-#' @param A
-#' @param X
-#' @param type
-#'
-#' @return
-#' @export
-#'
-#' @examples
 getPredMean <- function(A, X, type=c("alr", "proportion")) {
   type <- match.arg(type)
 
@@ -224,20 +214,41 @@ getPredMean <- function(A, X, type=c("alr", "proportion")) {
   return(r)
 }
 
-#' Title
+#' Get predicted OTU abundances
 #'
-#' @param object
-#' @param newdata
-#' @param type
-#' @param post.stat
-#' @param quant
-#' @param ...
+#' @param object An object of class \code{micore}
+#' @param newdata An optional numeric matrix containing covariates for new observations to get predictions for.
+#' @param type Character specifying what scale to get predicted OTU abundances for. Additive log-ratios or proportions?
+#' @param post.stat Character specifying whether the predictions be based on the posterior mean or median.
+#' @param quant Numeric vector specifying the quantiles of the posterior to return for the OTU abundances.
+#' @param ... Further arguments passed to or from other methods
 #'
-#' @return
+#' @return A list containing:
+#' \itemize{
+#'    \item \code{fit}: A matrix containing the posterior mean (or median) of the OTU abundances on the appropriate scale
+#'    \item \code{quant}: A list containing the requested quantiles from the posterior mean for the OTU abundances.
+#' }
 #' @export
 #' @importFrom stats median quantile
 #'
 #' @examples
+#' n <- 50
+#' p <- 5
+#' X <- cbind(1, rnorm(n))
+#' counts <- matrix(0, n, p+1)
+#' for (i in 1:n) {
+#'   counts[i,] <- rmultinom(1, size=100, prob=rep(1,p+1))
+#' }
+#'
+#' library(micore)
+#' mc.fit <- micore(counts, X, n.samp=100, n.burn=100, n.chain=1)
+#'
+#' new.dat <- cbind(c(1,1,1),c(0,1,0))
+#' pred <- predict(mc.fit, newdata = new.dat)
+#'
+#' pred.p <- predict(mc.fit, newdata=new.dat, "prop")
+#'
+#'
 predict.micore <- function(object, newdata=NULL, type=c("alr", "proportion"),
                            post.stat=c("mean", "median"),
                            quant=c(0.025, 0.975), ...) {
@@ -307,19 +318,42 @@ getC <- function(Psi, B, x, type=c("cov","cor","prec", "pcor")) {
   return(ret)
 }
 
-#' Title
+#' Get the predicted covariance matrix based on the \code{micore} model fit. Can also
+#' return correlation, precision, and partial correlation matrices.
 #'
-#' @param obj
-#' @param newdata
-#' @param quant
-#' @param type
-#' @param post.stat
+#' @param obj An object of class \code{micore}.
+#' @param newdata n optional numeric matrix containing covariates for new observations to get
+#' predicted covariance matrices for.
+#' @param quant Numeric vector specifying the quantiles of the posterior to return for predicted covariances.
+#' @param type Type of matrix to return: covariance, correlation, precision, or partial correlation.
+#' @param post.stat Character specifying whether the predictions be based on the posterior mean or median.
 #'
-#' @return
+#' @return A list containing:
+#' \itemize{
+#'    \item \code{fit}: A matrix containing the posterior mean (or median) of the covariance matrix.
+#'    \item \code{quant}: A list containing the requested quantiles from the posterior mean for the covariance matrix.
+#' }
 #' @export
 #' @importFrom stats median quantile
 #'
 #' @examples
+#'
+#' n <- 50
+#' p <- 5
+#' X <- cbind(1, rnorm(n))
+#' counts <- matrix(0, n, p+1)
+#' for (i in 1:n) {
+#'   counts[i,] <- rmultinom(1, size=100, prob=rep(1,p+1))
+#' }
+#'
+#' library(micore)
+#' mc.fit <- micore(counts, X, n.samp=100, n.burn=100, n.chain=1)
+#'
+#' new.dat <- cbind(c(1,1,1),c(0,1,0))
+#'
+#' c.mat <- getPredCov(mc.fit, new.dat)
+#' pc.mat <- getPredCov(mc.fit, new.dat, type="pcor)
+#'
 getPredCov <- function(obj, newdata=NULL, quant=c(0.025, 0.975),
                    type=c("cov","cor","prec", "pcor"),
                    post.stat=c("mean", "median")) {
@@ -393,15 +427,29 @@ getPost <- function(Psi.s, B.s, x, quant=c(0.025, 0.975), type=c("cov","cor","pr
 }
 
 
-#' Title
+#' Merge chains of MCMC run from \code{micore} object
 #'
-#' @param obj
-#' @param par
+#' @param obj An object of class \code{micore}
+#' @param par Character object specifying which parameter to merge chains for.
 #'
-#' @return
+#' @return An array with the merged MCMC samples from the specified parameter.  The
+#' first dimension of the array is the MCMC iteration.
 #' @export
 #'
 #' @examples
+#' n <- 50
+#' p <- 5
+#' X <- cbind(1, rnorm(n))
+#' counts <- matrix(0, n, p+1)
+#' for (i in 1:n) {
+#'   counts[i,] <- rmultinom(1, size=100, prob=rep(1,p+1))
+#' }
+#'
+#' library(micore)
+#' mc.fit <- micore(counts, X, n.samp=100, n.burn=100, n.chain=2)
+#'
+#' Amerge <- mergeChains(mc.fit, par="B")
+#'
 #' @importFrom abind abind
 #'
 mergeChains <- function(obj, par=c("A", "B", "Psi", "eta", "gamma", "Gamma")) {
@@ -411,21 +459,37 @@ mergeChains <- function(obj, par=c("A", "B", "Psi", "eta", "gamma", "Gamma")) {
   return(m)
 }
 
-#' Title
+#' Plots a traceplot for the different MCMC chains of a \code{micore} object
+#' for a specific parameter.
 #'
-#' @param obj
-#' @param par
-#' @param ind
-#' @param xlab
-#' @param ylab
-#' @param ...
+#' @param obj An object of class \code{micore}
+#' @param par Character object specifying which parameter to make a traceplot for.
+#' @param ind For matrix parameters, a 2-dimensional vector specifying the element of
+#' the parameter matrix to make the traceplot for.
+#' @param xlab Label for the x-axis.
+#' @param ylab Label for the y-axis.
+#' @param ... Other arguments passed to \code{plot}.
 #'
-#' @return
+#' @return Makes a traceplot for the specified parameter.
 #' @export
 #' @importFrom grDevices rainbow
 #' @importFrom graphics lines plot
 #'
 #' @examples
+#'
+#' n <- 50
+#' p <- 5
+#' X <- cbind(1, rnorm(n))
+#' counts <- matrix(0, n, p+1)
+#' for (i in 1:n) {
+#'   counts[i,] <- rmultinom(1, size=100, prob=rep(1,p+1))
+#' }
+#'
+#' library(micore)
+#' mc.fit <- micore(counts, X, n.samp=100, n.burn=100, n.chain=2)
+#'
+#' trplot(mc.fit, par="B", ind=c(1,2))
+#'
 trplot <- function(obj, par=c("A", "B", "Psi", "eta", "gamma", "Gamma"), ind, xlab=NULL,
                    ylab=NULL, ...) {
   if (class(obj)!="micore") stop("obj must be of class \"micore\"")
@@ -468,12 +532,26 @@ trplot <- function(obj, par=c("A", "B", "Psi", "eta", "gamma", "Gamma"), ind, xl
   }
 }
 
-#' Title
+#' Print method for \code{micore} object.
 #'
-#' @param x
+#' @param x An object of class \code{micore}
+#' @param ... Further arguments passed to or from other methods
 #'
-#' @return
+#' @return Prints information about \code{micore} object.
 #' @export
+#'
+#' n <- 50
+#' p <- 5
+#' X <- cbind(1, rnorm(n))
+#' counts <- matrix(0, n, p+1)
+#' for (i in 1:n) {
+#'   counts[i,] <- rmultinom(1, size=100, prob=rep(1,p+1))
+#' }
+#'
+#' library(micore)
+#' mc.fit <- micore(counts, X, n.samp=100, n.burn=100, n.chain=1)
+#'
+#' print(mc.fit)
 #'
 #' @examples
 print.micore <- function(x, ...) {
