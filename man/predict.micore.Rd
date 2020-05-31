@@ -4,12 +4,20 @@
 \alias{predict.micore}
 \title{Title}
 \usage{
-\method{predict}{micore}(obj, newdata = NULL, type = c("alr",
-  "proportion"), post.stat = c("mean", "median"), quant = c(0.025,
-  0.975))
+\method{predict}{micore}(
+  object,
+  newdata = NULL,
+  type = c("alr", "proportion"),
+  post.stat = c("mean", "median"),
+  quant = c(0.025, 0.975),
+  ...
+)
 }
 \arguments{
-\item{quant}{}
+\item{...}{}
+}
+\value{
+
 }
 \description{
 Title

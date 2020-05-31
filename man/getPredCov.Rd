@@ -4,12 +4,19 @@
 \alias{getPredCov}
 \title{Title}
 \usage{
-getPredCov(obj, newdata = NULL, quant = c(0.025, 0.975),
-  type = c("cov", "cor", "prec", "pcor"), post.stat = c("mean",
-  "median"))
+getPredCov(
+  obj,
+  newdata = NULL,
+  quant = c(0.025, 0.975),
+  type = c("cov", "cor", "prec", "pcor"),
+  post.stat = c("mean", "median")
+)
 }
 \arguments{
 \item{post.stat}{}
+}
+\value{
+
 }
 \description{
 Title

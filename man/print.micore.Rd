@@ -4,10 +4,13 @@
 \alias{print.micore}
 \title{Title}
 \usage{
-\method{print}{micore}(obj)
+\method{print}{micore}(x, ...)
 }
 \arguments{
-\item{obj}{}
+\item{x}{}
+}
+\value{
+
 }
 \description{
 Title

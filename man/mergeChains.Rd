@@ -9,6 +9,9 @@ mergeChains(obj, par = c("A", "B", "Psi", "eta", "gamma", "Gamma"))
 \arguments{
 \item{par}{}
 }
+\value{
+
+}
 \description{
 Title
 }

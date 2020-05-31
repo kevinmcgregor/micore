@@ -4,11 +4,20 @@
 \alias{trplot}
 \title{Title}
 \usage{
-trplot(obj, par = c("A", "B", "Psi", "eta", "gamma", "Gamma"), ind,
-  xlab = NULL, ylab = NULL, ...)
+trplot(
+  obj,
+  par = c("A", "B", "Psi", "eta", "gamma", "Gamma"),
+  ind,
+  xlab = NULL,
+  ylab = NULL,
+  ...
+)
 }
 \arguments{
 \item{...}{}
+}
+\value{
+
 }
 \description{
 Title

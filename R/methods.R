@@ -1,4 +1,4 @@
-
+#' @importFrom stats cov
 setHyper <- function(lr.counts, X, C0, Psi0, Gamma0, nuPsi, nuGamma, n, p, q) {
   p <- NCOL(lr.counts)
   q <- NCOL(X)
@@ -38,6 +38,7 @@ setHyper <- function(lr.counts, X, C0, Psi0, Gamma0, nuPsi, nuGamma, n, p, q) {
   return(list(C0=C0, Psi0=Psi0, Gamma0=Gamma0, nuPsi=nuPsi, nuGamma=nuGamma))
 }
 
+#' @importFrom stats rWishart
 sampPsi <- function(eta, Xg, C, C0, Gammainv, Psi0, nuPsi) {
   n <- NROW(Xg)
   p <- NCOL(eta)
@@ -50,6 +51,7 @@ sampPsi <- function(eta, Xg, C, C0, Gammainv, Psi0, nuPsi) {
   return(qr.solve(rWishart(1, df, Wpar)[,,1]))
 }
 
+#' @importFrom stats rnorm
 sampgamma_i <- function(eta, X, A, B, Psi.inv) {
   n <- NROW(eta)
 
@@ -92,6 +94,8 @@ rmatnorm <- function(M, rowCov, colCov) {
 
 
 #' @importFrom mvnfast rmvn
+#'
+#' @importFrom stats runif
 sampeta <- function(etac, counts, X, Xg, Psi, C, sigma.zero, etacov) {
   n <- NROW(etac)
   p <- NCOL(etac)
@@ -111,7 +115,7 @@ sampeta <- function(etac, counts, X, Xg, Psi, C, sigma.zero, etacov) {
 
     lr.obj <- evalPostLR(counts[i,], etaprop, etac[i,], Psi, mean.norm[i,])
     post.log.ratio <- lr.obj
-    r <- log(runif(1))
+    r <- log(stats::runif(1))
 
     # Pick sampled value based on posterior ratio
     if(r<post.log.ratio) {
@@ -129,6 +133,7 @@ sampeta <- function(etac, counts, X, Xg, Psi, C, sigma.zero, etacov) {
 }
 
 #' @importFrom mvnfast dmvn
+#' @importFrom stats dmultinom
 evalPostLR <- function(counts_i, etai_num, etai_den, Psi, mean.norm) {
   p <- length(etai_num)
 
@@ -143,6 +148,8 @@ evalPostLR <- function(counts_i, etai_num, etai_den, Psi, mean.norm) {
   return(post_log_ratio)
 }
 
+
+#' @importFrom stats cov
 runEM <- function(eta, X, n.iter=10, quiet=TRUE, trace=FALSE) {
   n <- NROW(eta)
   p <- NCOL(eta)
@@ -219,37 +226,39 @@ getPredMean <- function(A, X, type=c("alr", "proportion")) {
 
 #' Title
 #'
-#' @param obj
+#' @param object
 #' @param newdata
 #' @param type
 #' @param post.stat
 #' @param quant
+#' @param ...
 #'
 #' @return
 #' @export
+#' @importFrom stats median quantile
 #'
 #' @examples
-predict.micore <- function(obj, newdata=NULL, type=c("alr", "proportion"),
+predict.micore <- function(object, newdata=NULL, type=c("alr", "proportion"),
                            post.stat=c("mean", "median"),
-                           quant=c(0.025, 0.975)) {
-  if (class(obj)!="micore") stop("obj must be of class \"micore\"")
+                           quant=c(0.025, 0.975), ...) {
+  if (class(object)!="micore") stop("object must be of class \"micore\"")
   if (!is.numeric(quant) | any(quant<=0 | quant>=1)) stop("\"quant\" must be a numeric vector with elements between 0 and 1")
   type <- match.arg(type)
   post.stat <- match.arg(post.stat)
 
-  q.orig <- NCOL(obj[[1]]$X)
+  q.orig <- NCOL(object[[1]]$X)
 
   if (is.null(newdata)) {
-    X <- obj[[1]]$X
+    X <- object[[1]]$X
   } else {
     if (!is.numeric(newdata) | !is.matrix(newdata)) stop("\"newdata\" must be a numeric matrix")
-    if (NCOL(newdata)!=q.orig) stop("The number of columns of \"newdata\" does not match with the model matrix in \"obj\" ")
+    if (NCOL(newdata)!=q.orig) stop("The number of columns of \"newdata\" does not match with the model matrix in \"object\" ")
     X <- newdata
   }
 
   n <- NROW(X)
 
-  A.s <- mergeChains(obj, "A")
+  A.s <- mergeChains(object, "A")
 
   n.s <- dim(A.s)[1]
   p <- NCOL(A.s)
@@ -276,6 +285,7 @@ predict.micore <- function(obj, newdata=NULL, type=c("alr", "proportion"),
   return(list(fit=stat, quant=qtile))
 }
 
+#' @importFrom stats cov2cor
 getC <- function(Psi, B, x, type=c("cov","cor","prec", "pcor")) {
   Bx <- B%*%x
   if (type=="prec" | type=="pcor") {
@@ -307,6 +317,7 @@ getC <- function(Psi, B, x, type=c("cov","cor","prec", "pcor")) {
 #'
 #' @return
 #' @export
+#' @importFrom stats median quantile
 #'
 #' @examples
 getPredCov <- function(obj, newdata=NULL, quant=c(0.025, 0.975),
@@ -391,6 +402,8 @@ getPost <- function(Psi.s, B.s, x, quant=c(0.025, 0.975), type=c("cov","cor","pr
 #' @export
 #'
 #' @examples
+#' @importFrom abind abind
+#'
 mergeChains <- function(obj, par=c("A", "B", "Psi", "eta", "gamma", "Gamma")) {
   if (class(obj)!="micore") stop("obj must be of class \"micore\"")
   par <- match.arg(par)
@@ -409,6 +422,8 @@ mergeChains <- function(obj, par=c("A", "B", "Psi", "eta", "gamma", "Gamma")) {
 #'
 #' @return
 #' @export
+#' @importFrom grDevices rainbow
+#' @importFrom graphics lines plot
 #'
 #' @examples
 trplot <- function(obj, par=c("A", "B", "Psi", "eta", "gamma", "Gamma"), ind, xlab=NULL,
@@ -455,24 +470,26 @@ trplot <- function(obj, par=c("A", "B", "Psi", "eta", "gamma", "Gamma"), ind, xl
 
 #' Title
 #'
-#' @param obj
+#' @param x
 #'
 #' @return
 #' @export
 #'
 #' @examples
-print.micore <- function(obj) {
-  if (class(obj)!="micore") stop("obj must be of class \"micore\"")
+print.micore <- function(x, ...) {
+  if (class(x)!="micore") stop("x must be of class \"micore\"")
 
-  n <- NROW(obj[[1]]$counts)
-  p <- NCOL(obj[[1]]$counts)
-  q <- NCOL(obj[[1]]$X)
+  n <- NROW(x[[1]]$counts)
+  p <- NCOL(x[[1]]$counts)
+  q <- NCOL(x[[1]]$X)
 
-  n.chain <- length(obj)
+  n.chain <- length(x)
+  n.samp <- dim(x[[1]]$A)[1]
 
   cat("MiCoRe: Microbiome Covariance Regression\n")
-  cat(" ", n, "observations,", p-1, "OTUs (plus 1 reference OTU),", q-1, "covariates\n")
-  cat(" ", n.chain, "MCMC chains: each chain is a list element of this object\n")
+  cat(" -", n, "observations,", p-1, "OTUs (plus 1 reference OTU),", q-1, "covariates\n")
+  cat(" -", n.chain, "MCMC chains: each chain is a list element of this object\n")
+  cat(" -", n.samp, "MCMC samples\n")
 }
 
 

@@ -9,6 +9,9 @@ getPredMean(A, X, type = c("alr", "proportion"))
 \arguments{
 \item{type}{}
 }
+\value{
+
+}
 \description{
 Title
 }

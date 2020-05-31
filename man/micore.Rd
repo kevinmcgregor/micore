@@ -2,12 +2,25 @@
 % Please edit documentation in R/micore.R
 \name{micore}
 \alias{micore}
-\title{Title}
+\title{Run Microbiome Covariance Regression}
 \usage{
-micore(counts, X, C0 = NULL, Psi0 = NULL, Gamma0 = NULL,
-  nuPsi = NULL, nuGamma = NULL, n.chain = 4, n.cores = n.chain,
-  target.accept.rate = 0.23, n.samp = 4000, n.burn = 4000,
-  adapt.control = NULL, save.eta.cov = FALSE, verbose = FALSE)
+micore(
+  counts,
+  X,
+  C0 = NULL,
+  Psi0 = NULL,
+  Gamma0 = NULL,
+  nuPsi = NULL,
+  nuGamma = NULL,
+  n.chain = 4,
+  n.cores = n.chain,
+  target.accept.rate = 0.23,
+  n.samp = 4000,
+  n.burn = 4000,
+  adapt.control = NULL,
+  save.eta.cov = FALSE,
+  verbose = FALSE
+)
 }
 \arguments{
 \item{counts}{Matrix containing OTU counts.  Rows are samples, columns are OTUs.}
@@ -34,12 +47,59 @@ micore(counts, X, C0 = NULL, Psi0 = NULL, Gamma0 = NULL,
 
 \item{n.burn}{Number of burn-in samples}
 
-\item{adapt.control}{List contatining tuning parameters for adaptive MCMC part.  See .}
+\item{adapt.control}{List contatining tuning parameters for adaptive MCMC part.  See details section below.}
 
 \item{save.eta.cov}{Logical. Save the proposal distribution variance from the Metropolis sampler?  Caution, this will be large.}
 
 \item{verbose}{Logical. Output progress?}
 }
+\value{
+An object of class \code{micore} containing one list element for each MCMC chain.  Each
+list element contains the following attributes:
+\itemize{
+  \item \code{eta}: An array containing the MCMC samples for the eta parameter.  First dimension indexes the MCMC samples.
+  \item \code{Psi}: An array containing the MCMC samples for the Psi parameter.  First dimension indexes the MCMC samples.
+  \item \code{A}: An array containing the MCMC samples for the A parameter.  First dimension indexes the MCMC samples.
+  \item \code{B}: An array containing the MCMC samples for the B parameter.  First dimension indexes the MCMC samples.
+  \item \code{gamma}: An array containing the MCMC samples for the gamma_i parameters.  First dimension indexes the MCMC samples.
+  \item \code{Gamma}: An array containing the MCMC samples for the Gamma (matrix) parameter.  First dimension indexes the MCMC samples.
+  \item \code{eta.accepted}: A matrix indicating which eta samples were accepted (1) and which were rejected (0).  Rows are MCMC iterations, columns are subjects.
+  \item \code{sigma.zero}: A matrix containing values of the Metropolis variance scaling parameter for all subjects over all MCMC samples.
+  \item \code{acc.probs}: A matrix containing the Metropolis acceptance probabilities for all subjects over all MCMC samples.
+  \item \code{counts}: The OTU count matrix.
+  \item \code{X}: The model matrix.
+}
+}
 \description{
-Title
+Run Microbiome Covariance Regression
+}
+\details{
+This function allows running the Microbiome Covariance Regession
+method on multiple chains in parallel.  The user can specify values for
+the hyperparameters \code{C0}, \code{Psi0}, \code{Gamma0}, \code{nuPsi},
+and \code{nuGamma}.  If they are not specified, then they will be set
+automatically.
+
+A list of arguments passed to the adaptive Metropolis sampler for \code{eta} can
+be input using the \code{adapt.control} argument.  These can be modified
+if the \code{eta} parameters do not converge; the default values are
+not always optimal.  The parameters (and defaults) that can be edited are:
+\itemize{
+  \item \code{init}: (default 0.1) The initial stepsize for the adaptive Metropolis parameters.
+  \item \code{a}: (default 0.5) The adaptation rate.  A higher value means the adaptations will vanish more quickly with the number of MCMC steps.
+  \item \code{sigma.zero}: (default 1) The initial value of the adaptive Metropolis variance scaling parameter.
+}
+}
+\examples{
+n <- 50
+p <- 5
+X <- cbind(1, rnorm(n))
+counts <- matrix(0, n, p+1)
+for (i in 1:n) {
+  counts[i,] <- rmultinom(1, size=100, prob=rep(1,p+1))
+}
+
+library(micore)
+mc.fit <- micore(counts, X, n.samp=100, n.burn=100, n.chain=1)
+
 }
