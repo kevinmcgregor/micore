@@ -2,7 +2,8 @@
 
 #' Run Microbiome Covariance Regression
 #'
-#' @param counts Matrix containing OTU counts.  Rows are samples, columns are OTUs.
+#' @param counts Matrix containing OTU counts.  Rows are samples, columns are OTUs.  The last column is considered the reference OTU for the
+#'  additive log-ratio transformation and is not included in the covariance matrix.
 #' @param X Design matrix contating covariates of interest. Rows are samples, columns are covariates.  Can include intercept column.
 #' @param C0 Prior mean for "C" parameter.  If null, then C0 is set automatically.
 #' @param Psi0 Prior inverse-Wishart matrix hyperparameter for "Psi" parameter.  If null, then Psi0 is set automatically.

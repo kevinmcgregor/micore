@@ -7,6 +7,8 @@ Authors@R: c(person("Kevin", "McGregor", email="kevin.mcgregor@mail.mcgill.ca", 
 	   person("Celia", "Greenwood", email="celia.greenwood@mcgill.ca", role="aut"))
 Description: Performs covariance regression in a multinomial logistic-normal model to estimate how microbiome co-occurrence networks vary with respect to covariates.
 Imports: mvnfast, parallel, compositions, abind, Matrix
+Suggests: knitr, rmarkdown
+VignetteBuilder: knitr
 License: GPL (>=3)
 Encoding: UTF-8
 LazyData: true
