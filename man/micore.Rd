@@ -23,7 +23,8 @@ micore(
 )
 }
 \arguments{
-\item{counts}{Matrix containing OTU counts.  Rows are samples, columns are OTUs.}
+\item{counts}{Matrix containing OTU counts.  Rows are samples, columns are OTUs.  The last column is considered the reference OTU for the
+additive log-ratio transformation and is not included in the covariance matrix.}
 
 \item{X}{Design matrix contating covariates of interest. Rows are samples, columns are covariates.  Can include intercept column.}
 

@@ -36,3 +36,21 @@ A list containing:
 Get the predicted covariance matrix based on the \code{micore} model fit. Can also
 return correlation, precision, and partial correlation matrices.
 }
+\examples{
+n <- 50
+p <- 5
+X <- cbind(1, rnorm(n))
+counts <- matrix(0, n, p+1)
+for (i in 1:n) {
+  counts[i,] <- rmultinom(1, size=100, prob=rep(1,p+1))
+}
+
+library(micore)
+mc.fit <- micore(counts, X, n.samp=100, n.burn=100, n.chain=1)
+
+new.dat <- cbind(c(1,1,1),c(0,1,0))
+
+c.mat <- getPredCov(mc.fit, new.dat)
+pc.mat <- getPredCov(mc.fit, new.dat, type="pcor")
+
+}

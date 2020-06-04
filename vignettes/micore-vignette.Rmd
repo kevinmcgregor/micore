@@ -117,7 +117,7 @@ Hence, $\Ab$ characterizes how the covariates in $\xb_i$ affect the expected val
 The matrix $\Sigmab_{\xb_i}$, or perhaps its corresponding correlation matrix, can then be used to define a taxon co-occurrence network for individual $i$ based on the covariates. In this expression, $\Psib$ can be thought of as a baseline covariance matrix and $\Bb$ describes how the covariates in $\xb_i$ affect $\Sigmab_{\xb_i}$.
 
 ## Running **MiCoRe**
-After installing the \texttt{micore} package, running the method is simple.  Let's simulate some data and run the function.  Note that you need to supply the model matrix $\Xb$, and you specifically need to give it an intercept column:
+After installing the \texttt{micore} package, running the method is simple.  Let's simulate some data and run the function.  Note that you need to supply the model matrix $\Xb$, and you specifically need to give it an intercept column.  Also note that, in this example, we run only 500 burn-in and 500 MCMC samples, but in practice, you should likely run for longer.  For example, the default is 4000 burn-in and 4000 MCMC samples.
 
 ```{r sim_and_run}
 n <- 100
@@ -181,7 +181,34 @@ B.merge <- mergeChains(mc.fit, par="B")
 apply(B.merge, 2:3, mean)
 ```
 
+## Getting estimated OTU abundances
+Though the \texttt{micore} object contains all samples from all parameters from all chains, these data structures can be difficult to work with directly.  This package contains a functions to get estimates (and credible intervals) of the OTU abundances for a given covariate profile $\xb_i$.  These estimates can be done on either the additive log-ratio scale or on the proportions scale:
+```{r abund}
+# Want to estimate OTU abundances for individual with x=1.3.
+# Create the covariate profile with intercept
+x.try <- matrix(c(1, 1.3), nrow=1)
+# Get predicted abundances on additive log-ratio scale
+p1 <- predict(mc.fit, newdata=x.try)
+p1$fit
+# Credible intervals
+p1$quant
 
+# Get predicted abundances on proportions scale
+p2 <- predict(mc.fit, newdata=x.try, type="prop")
+p2$fit
+# Credible intervals
+p2$quant
+```
+
+## Getting estimated covariance matrix (or precision, correlation, partial correaltion matrix)
+It's also possible to directly extracted the estimated covariance matrix based on a covariate profile $\xb_i$.  The function \texttt{getPredCov()} allows the user to provide a covariate profile and will return the corresponding estimated covariance, precision, correlation, or partial correlation matrix along with interval estimates.
+```{r abund}
+# Get estimated covariance matrix using covariate profile defined earlier...
+cov1 <- getPredCov(mc.fit, newdata=x.try)
+p1$fit
+# Credible intervals
+p1$quant
+```
 
 ## Model diagnostics
 TODO

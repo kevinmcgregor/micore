@@ -17,3 +17,18 @@ Prints information about \code{micore} object.
 \description{
 Print method for \code{micore} object.
 }
+\examples{
+n <- 50
+p <- 5
+X <- cbind(1, rnorm(n))
+counts <- matrix(0, n, p+1)
+for (i in 1:n) {
+  counts[i,] <- rmultinom(1, size=100, prob=rep(1,p+1))
+}
+
+library(micore)
+mc.fit <- micore(counts, X, n.samp=100, n.burn=100, n.chain=1)
+
+print(mc.fit)
+
+}

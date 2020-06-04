@@ -337,7 +337,6 @@ getC <- function(Psi, B, x, type=c("cov","cor","prec", "pcor")) {
 #' @importFrom stats median quantile
 #'
 #' @examples
-#'
 #' n <- 50
 #' p <- 5
 #' X <- cbind(1, rnorm(n))
@@ -352,7 +351,7 @@ getC <- function(Psi, B, x, type=c("cov","cor","prec", "pcor")) {
 #' new.dat <- cbind(c(1,1,1),c(0,1,0))
 #'
 #' c.mat <- getPredCov(mc.fit, new.dat)
-#' pc.mat <- getPredCov(mc.fit, new.dat, type="pcor)
+#' pc.mat <- getPredCov(mc.fit, new.dat, type="pcor")
 #'
 getPredCov <- function(obj, newdata=NULL, quant=c(0.025, 0.975),
                    type=c("cov","cor","prec", "pcor"),
@@ -540,6 +539,7 @@ trplot <- function(obj, par=c("A", "B", "Psi", "eta", "gamma", "Gamma"), ind, xl
 #' @return Prints information about \code{micore} object.
 #' @export
 #'
+#' @examples
 #' n <- 50
 #' p <- 5
 #' X <- cbind(1, rnorm(n))
@@ -553,7 +553,6 @@ trplot <- function(obj, par=c("A", "B", "Psi", "eta", "gamma", "Gamma"), ind, xl
 #'
 #' print(mc.fit)
 #'
-#' @examples
 print.micore <- function(x, ...) {
   if (class(x)!="micore") stop("x must be of class \"micore\"")
 
