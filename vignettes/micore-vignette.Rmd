@@ -67,7 +67,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Installation
 **MiCoRe** can be installed easily from Github. Note that the name of the R package is all lowercase: \texttt{micore}.
 
-```{r, eval=FALSE}
+```{r install, eval=FALSE}
 if (!require(devtools)) {
   install.packages("devtools")
   library(devtools)
@@ -119,7 +119,7 @@ The matrix $\Sigmab_{\xb_i}$, or perhaps its corresponding correlation matrix, c
 ## Running **MiCoRe**
 After installing the \texttt{micore} package, running the method is simple.  Let's simulate some data and run the function.  Note that you need to supply the model matrix $\Xb$, and you specifically need to give it an intercept column:
 
-```{r}
+```{r sim_and_run}
 n <- 100
 p <- 5
 q <- 2
@@ -141,12 +141,10 @@ n.samp <- 500
 library(micore)
 mc.fit <- micore(counts, X, n.burn = n.burn, n.samp = n.samp, 
                  n.chain=4, n.cores=4, verbose=TRUE)
-
-mc.fit
 ```
 
 Note that the \texttt{micore} object contains one list element for each MCMC chain run.  In this example, we ran 4 chains, so each chain's data can be accessed like so:
-```{r}
+```{r extract_chain}
 # Chain 1
 tmp <- mc.fit[[1]]
 attributes(tmp)
@@ -176,7 +174,7 @@ The names of the parameters available to extract are:
 \end{itemize}
 
 The MCMC samples from all chains can be merged together for a particular parameter in order to run summary statistics on all MCMC samples from the parameter:
-```{r}
+```{r merge}
 # Merging all 4 chains into single array
 B.merge <- mergeChains(mc.fit, par="B")
 # Mean of B over all chains
@@ -185,7 +183,7 @@ apply(B.merge, 2:3, mean)
 
 
 
-## Adaptive MCMC parameters
+## Model diagnostics
 TODO
 
 
