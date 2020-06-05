@@ -117,28 +117,23 @@ Hence, $\Ab$ characterizes how the covariates in $\xb_i$ affect the expected val
 The matrix $\Sigmab_{\xb_i}$, or perhaps its corresponding correlation matrix, can then be used to define a taxon co-occurrence network for individual $i$ based on the covariates. In this expression, $\Psib$ can be thought of as a baseline covariance matrix and $\Bb$ describes how the covariates in $\xb_i$ affect $\Sigmab_{\xb_i}$.
 
 ## Running **MiCoRe**
-After installing the \texttt{micore} package, running the method is simple.  Let's simulate some data and run the function.  Note that you need to supply the model matrix $\Xb$, and you specifically need to give it an intercept column.  Also note that, in this example, we run only 500 burn-in and 500 MCMC samples, but in practice, you should likely run for longer.  For example, the default is 4000 burn-in and 4000 MCMC samples.
+After installing the \texttt{micore} package, running the method is simple.  Let's load in some data and run the function.  Note that you need to supply the model matrix $\Xb$, and you specifically need to give it an intercept column. This can be done easily using the \texttt{model.matrix()} function. Also note that, in this example, we run only 500 burn-in and 500 MCMC samples, but in practice, you should likely run for longer.  For example, the default is 4000 burn-in and 4000 MCMC samples.
+
+We'll run \texttt{micore} and include BMI in the model matrix.
 
 ```{r sim_and_run}
-n <- 100
-p <- 5
-q <- 2
+# Loading in sample American Gut dataset included in package
+library(micore)
+data(amgut)
 
-# Simulating data
-x <- rnorm(n)
-# Model matrix with intercept column
-X <- cbind(1, x)
-counts <- matrix(0, n, p+1)
-for (i in 1:n) {
-  counts[i,] <- rmultinom(1, size=100, prob=rep(1,p+1))
-}
+counts <- amgut$counts
+X <- model.matrix(~BMI, amgut$clin.dat)
 
 # Number of burn-in samples and number of MCMC samples to save
 n.burn <- 500
 n.samp <- 500
 
 # Running micore
-library(micore)
 mc.fit <- micore(counts, X, n.burn = n.burn, n.samp = n.samp, 
                  n.chain=4, n.cores=4, verbose=TRUE)
 ```
@@ -228,6 +223,25 @@ When running the model, you should always run multiple chains (the default is 4)
 trplot(mc.fit, par="B", ind=c(1,1))
 ```
 In this example, the chains have not yet converged, meaning that it is possible that not enough MCMC samples have been run.  In this case it would be wise to increase the parameters \texttt{n.burn} and \texttt{n.samp} in the \texttt{micore()} function.
+
+It is also a good idea to check convergence of \texttt{eta}, as this parameter relies on the adaptive Metropolis step.
+```{r traceplot_eta}
+trplot(mc.fit, par="eta", ind=c(1,1))
+```
+Several parameters for the adaptive Metropolis sampler can be changed from their defaults; these parameters are specified as list elements of the \texttt{adapt.control} argument to \texttt{micore}.
+\begin{itemize}
+  \item \texttt{init}: (default 0.1) The initial stepsize for the adaptive Metropolis parameters.
+  \item \texttt{a}: (default 0.5) The adaptation rate. A higher value means the adaptations will vanish more quickly with the number of MCMC steps.
+  \item \texttt{sigma.zero}: (default 1) The initial value of the adaptive Metropolis variance scaling parameter.
+\end{itemize}
+Sometimes the \texttt{a} parameter must be changed to get convergence for \texttt{eta}.
+```{r change_a, eval=FALSE}
+# Running micore with a different value for "a" parameter in adaptive Metropolis.  
+# Setting a = 0.3.
+mc.fit <- micore(counts, X, n.burn = n.burn, n.samp = n.samp, 
+                 n.chain=4, n.cores=4, verbose=TRUE,
+                 adapt.control = list(a=0.3))
+```
 
 
 
