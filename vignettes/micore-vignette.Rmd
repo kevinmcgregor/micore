@@ -201,16 +201,35 @@ p2$quant
 ```
 
 ## Getting estimated covariance matrix (or precision, correlation, partial correaltion matrix)
-It's also possible to directly extracted the estimated covariance matrix based on a covariate profile $\xb_i$.  The function \texttt{getPredCov()} allows the user to provide a covariate profile and will return the corresponding estimated covariance, precision, correlation, or partial correlation matrix along with interval estimates.
-```{r abund}
+It's also possible to directly extract the estimated covariance matrix based on a covariate profile $\xb_i$.  The function \texttt{getPredCov()} allows the user to provide a covariate profile and will return the corresponding estimated covariance, precision, correlation, or partial correlation matrix along with interval estimates.
+Note that the returned object saves the estimate value in and array in the \texttt{fit} slot, and the first dimension corresponds to the individuals that covariances matrices are being calculated for.
+
+```{r predCov}
 # Get estimated covariance matrix using covariate profile defined earlier...
 cov1 <- getPredCov(mc.fit, newdata=x.try)
-p1$fit
+# Extract the covariance matrix for the first individual in x.try
+cov1$fit[1,,]
 # Credible intervals
-p1$quant
+cov1$quant$`2.5%`[1,,]
+cov1$quant$`97.5%`[1,,]
+
+# Partial correlation instead
+pc1 <- getPredCov(mc.fit, newdata=x.try, type="pcor")
+# Extract the partial correlation matrix for the first individual in x.try
+pc1$fit[1,,]
+# Credible intervals
+pc1$quant$`2.5%`[1,,]
+pc1$quant$`97.5%`[1,,]
 ```
 
 ## Model diagnostics
-TODO
+When running the model, you should always run multiple chains (the default is 4), to check convergence of the parameters.  This can be investigated using the \texttt{trplot()} function.  Let's check the traceplot for the $\Bb_{11}$ matrix element:
+```{r traceplot}
+trplot(mc.fit, par="B", ind=c(1,1))
+```
+In this example, the chains have not yet converged, meaning that it is possible that not enough MCMC samples have been run.  In this case it would be wise to increase the parameters \texttt{n.burn} and \texttt{n.samp} in the \texttt{micore()} function.
+
+
+
 
 
