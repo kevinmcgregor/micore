@@ -137,7 +137,80 @@ library(micore)
 mc.fit <- micore(counts, X, n.burn = n.burn, n.samp = n.samp, 
                  n.chain=4, n.cores=4, verbose=TRUE)
 ```
-@@ -229,6 +224,25 @@ trplot(mc.fit, par="B", ind=c(1,1))
+Note that the \texttt{micore} object contains one list element for each MCMC chain run.  In this example, we ran 4 chains, so each chain's data can be accessed like so:
+```{r extract_chain}
+# Chain 1
+tmp <- mc.fit[[1]]
+attributes(tmp)
+# Chain 2
+tmp <- mc.fit[[2]]
+attributes(tmp)
+# etc...
+```
+MCMC samples from any of the chains can be extracted from any of the parameters directly from this object.  Each parameter is an array where the first dimension represents the .  For example, we can extract the $\Bb$ parameter from chain 3:
+```{r}
+# Extracting the B parameter from chain 3
+B.3 <- mc.fit[[3]]$B
+dim(B.3)
+# Get 101th sample of B in chain 3
+B.3[101,,]
+```
+The names of the parameters available to extract are:
+\begin{itemize}
+  \item \texttt{eta}: $\etab$, the additive log-ratio transformed proportions
+  \item \texttt{Psi}: $\Psib$, the baseline covariance matrix
+  \item \texttt{A}: $\Ab$, the ``fixed effect'' parameter
+  \item \texttt{B}: $\Bb$, the ``random effect'' parameter
+  \item \texttt{gamma}: $\gamma_i$, $i\in1,\dots,n$, the individual-specific parameter (not to be confused with \texttt{Gamma} with a capital G)
+  \item \texttt{Gamma}: $\Gammab$ the column covariance matrix in the Matrix-Normal prior (not to be confused with \texttt{Gamma} with a lowercase g)
+\end{itemize}
+The MCMC samples from all chains can be merged together for a particular parameter in order to run summary statistics on all MCMC samples from the parameter:
+```{r merge}
+# Merging all 4 chains into single array
+B.merge <- mergeChains(mc.fit, par="B")
+# Mean of B over all chains
+apply(B.merge, 2:3, mean)
+```
+## Getting estimated OTU abundances
+Though the \texttt{micore} object contains all samples from all parameters from all chains, these data structures can be difficult to work with directly.  This package contains a functions to get estimates (and credible intervals) of the OTU abundances for a given covariate profile $\xb_i$.  These estimates can be done on either the additive log-ratio scale or on the proportions scale:
+```{r abund}
+# Want to estimate OTU abundances for individual with x=1.3.
+# Create the covariate profile with intercept
+x.try <- matrix(c(1, 1.3), nrow=1)
+# Get predicted abundances on additive log-ratio scale
+p1 <- predict(mc.fit, newdata=x.try)
+p1$fit
+# Credible intervals
+p1$quant
+# Get predicted abundances on proportions scale
+p2 <- predict(mc.fit, newdata=x.try, type="prop")
+p2$fit
+# Credible intervals
+p2$quant
+```
+## Getting estimated covariance matrix (or precision, correlation, partial correaltion matrix)
+It's also possible to directly extract the estimated covariance matrix based on a covariate profile $\xb_i$.  The function \texttt{getPredCov()} allows the user to provide a covariate profile and will return the corresponding estimated covariance, precision, correlation, or partial correlation matrix along with interval estimates.
+Note that the returned object saves the estimate value in and array in the \texttt{fit} slot, and the first dimension corresponds to the individuals that covariances matrices are being calculated for.
+```{r predCov}
+# Get estimated covariance matrix using covariate profile defined earlier...
+cov1 <- getPredCov(mc.fit, newdata=x.try)
+# Extract the covariance matrix for the first individual in x.try
+cov1$fit[1,,]
+# Credible intervals
+cov1$quant$`2.5%`[1,,]
+cov1$quant$`97.5%`[1,,]
+# Partial correlation instead
+pc1 <- getPredCov(mc.fit, newdata=x.try, type="pcor")
+# Extract the partial correlation matrix for the first individual in x.try
+pc1$fit[1,,]
+# Credible intervals
+pc1$quant$`2.5%`[1,,]
+pc1$quant$`97.5%`[1,,]
+```
+## Model diagnostics
+When running the model, you should always run multiple chains (the default is 4), to check convergence of the parameters.  This can be investigated using the \texttt{trplot()} function.  Let's check the traceplot for the $\Bb_{11}$ matrix element:
+```{r traceplot}
+trplot(mc.fit, par="B", ind=c(1,1))
 ```
 In this example, the chains have not yet converged, meaning that it is possible that not enough MCMC samples have been run.  In this case it would be wise to increase the parameters \texttt{n.burn} and \texttt{n.samp} in the \texttt{micore()} function.
 
