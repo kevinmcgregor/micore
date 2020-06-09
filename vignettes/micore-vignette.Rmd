@@ -106,6 +106,7 @@ Hence, $\Ab$ characterizes how the covariates in $\xb_i$ affect the expected val
 \end{align}
 The matrix $\Sigmab_{\xb_i}$, or perhaps its corresponding correlation matrix, can then be used to define a taxon co-occurrence network for individual $i$ based on the covariates. In this expression, $\Psib$ can be thought of as a baseline covariance matrix and $\Bb$ describes how the covariates in $\xb_i$ affect $\Sigmab_{\xb_i}$.
 
+
 ## Running **MiCoRe**
 After installing the \texttt{micore} package, running the method is simple.  Let's simulate some data and run the function.  Note that you need to supply the model matrix $\Xb$, and you specifically need to give it an intercept column.  Also note that, in this example, we run only 500 burn-in and 500 MCMC samples, but in practice, you should likely run for longer.  For example, the default is 4000 burn-in and 4000 MCMC samples.
 After installing the \texttt{micore} package, running the method is simple.  Let's load in some data and run the function.  Note that you need to supply the model matrix $\Xb$, and you specifically need to give it an intercept column. This can be done easily using the \texttt{model.matrix()} function. Also note that, in this example, we run only 500 burn-in and 500 MCMC samples, but in practice, you should likely run for longer.  For example, the default is 4000 burn-in and 4000 MCMC samples.
