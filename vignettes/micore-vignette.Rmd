@@ -1,0 +1,161 @@
+---
+title: "MiCoRe Vignette"
+author: "Kevin McGregor"
+date: "6/4/2020"
+output: rmarkdown::pdf_document
+header-includes:
+  - \usepackage{amsmath,amssymb,mathrsfs,mathtools,xfrac,breqn,bm}
+  - \newcommand{\lb}{\left[}
+  - \newcommand{\rb}{\right]}
+  - \newcommand{\lc}{\left\{}
+  - \newcommand{\rc}{\right\}}
+  - \newcommand{\lp}{\left(}
+  - \newcommand{\rp}{\right)}
+  - \newcommand{\wb}{\textbf{w}}
+  - \newcommand{\Wb}{\textbf{W}}
+  - \newcommand{\Ab}{\textbf{A}}
+  - \newcommand{\Bb}{\textbf{B}}
+  - \newcommand{\Cb}{\textbf{C}}
+  - \newcommand{\Gb}{\textbf{G}}
+  - \newcommand{\Vb}{\textbf{V}}
+  - \newcommand{\Xb}{\textbf{X}}
+  - \newcommand{\Yb}{\textbf{Y}}
+  - \newcommand{\Lb}{\textbf{L}}
+  - \newcommand{\Mb}{\textbf{M}}
+  - \newcommand{\Zb}{\textbf{Z}}
+  - \newcommand{\Xgb}{\textbf{X}_\gamma}
+  - \newcommand{\Xwt}{\widetilde{\textbf{X}}}
+  - \newcommand{\etawt}{\widetilde{\bm{\eta}}}
+  - \newcommand{\Gammab}{\mathbf{\Gamma}}
+  - \newcommand{\Lambdab}{\mathbf{\Lambda}}
+  - \newcommand{\pib}{\bm{\pi}}
+  - \newcommand{\etab}{\bm{\eta}}
+  - \newcommand{\etastr}{\bm{\eta}^*}
+  - \newcommand{\yb}{\textbf{y}}
+  - \newcommand{\xb}{\textbf{x}}
+  - \newcommand{\pb}{\textbf{p}}
+  - \newcommand{\Sigmab}{\mathbf{\Sigma}}
+  - \newcommand{\Psib}{\mathbf{\Psi}}
+  - \newcommand{\Thetab}{\mathbf{\Theta}}
+  - \newcommand{\Omegab}{\mathbf{\Omega}}
+  - \newcommand{\Xib}{\mathbf{\Xi}}
+  - \newcommand{\mi}{\texttt{MiCoRe}}
+  - \newcommand{\md}{\texttt{MDiNE}}
+  - \newcommand{\spiec}{\texttt{SPIEC-EASI}}
+  - \newcommand{\mint}{\texttt{MInt}}
+  - \newcommand{\red}[1]{{\color{red}#1}}
+  - \newcommand{\Ident}[1]{{\textbf{I}_{#1}}}
+  - \DeclareMathOperator*{\argmax}{arg\,max}
+  - \DeclareMathOperator{\tr}{tr}
+  - \DeclareMathOperator{\vc}{vec}
+  - \DeclareMathOperator{\E}{\mathbb{E}}
+  - \DeclareMathOperator{\var}{var}
+  - \DeclareMathOperator{\diag}{diag}
+  - \DeclareMathOperator{\ad}{AbsDiff}
+vignette: >
+  %\VignetteIndexEntry{MiCoRe Vignette}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+**Mi**crobiome **Co**variance **Re**gression (**MiCoRe**) allows the estimation of how OTU co-occurrence networks vary with respect to a covariate profile using principles of covariance regression.  This work was developed in the [Greenwood Lab](https://www.mcgill.ca/statisticalgenetics/) at McGill University.
+## Installation
+**MiCoRe** can be installed easily from Github. Note that the name of the R package is all lowercase: \texttt{micore}.
+```{r install, eval=FALSE}
+if (!require(devtools)) {
+  install.packages("devtools")
+  library(devtools)
+}
+install_github("kevinmcgregor/micore", dependencies=TRUE)
+```
+## The model
+The goal of **MiCoRe** is to estimate how covariance matrices vary with repsect to a covariate profile in the context of microbiome data.
+Assume that the matrix $\Yb_{n\times (p+1)}$ contains the counts of $p+1$ taxa over $n$ samples.  Taxon $p+1$ will be used as a reference taxon, and will not be included in the estimated covariance matrices.  The matrix $\Xb_{n\times q}$ contains the $q-1$ covariates over which the covariance (or precision) matrix is assumed to vary, along with an intercept column.  The vector $\xb_i=(1,x_{i1},\dots,x_{i(q-1)})^\top$ contains the covariates for individual $i$.
+We assume a multinomial logistic regression framework for the taxon counts.
+We denote the total count for individual $i$ as $M_i=\sum_{j=1}^{p+1} \Yb_{ij}$.  We also assume that the true proportions of all the taxa in individual $i$'s microbiome is $\pib_i=(\pi_{i1},\dots,\pi_{i(p+1)})$, with $0<\pi_{ij}<1$ for all $j\in\{1,\dots,p+1\}$ and ${\sum_{j=1}^{p+1} \pi_{ij}=1}$.  Then we assume the observed counts for individual $i$, denoted by $\Yb_{i\cdot}$, follow a multinomial distribution.  The full model is written as.
+\begin{align}
+\label{eqn:model}
+    \Yb_{i\cdot} | \etab_{i\cdot}, \Ab, \Bb, \gamma_i, \Psib, \Gammab &\sim \mbox{Multinomial}(M_i, \pib_i) \nonumber \\
+    \etab_{i\cdot} |  \Ab, \Bb, \gamma_i, \Psib, \Gammab &\sim \mbox{Normal}\left([\Ab+\gamma_i \Bb]\xb_i, \Psib\right) \nonumber \\
+    \Cb=(\Ab,\Bb) | \Psib, \Gammab &\sim \mbox{Matrix-Normal}\left(\Cb_0, \Psib, \Gammab \right) \nonumber \\
+    \Psib &\sim \mbox{inv-Wishart}\left(\nu_\Psi,\Psib_0\right) \nonumber \\
+    \Gammab &\sim \mbox{inv-Wishart}\left(\nu_\Gamma,\Gammab_0\right) \nonumber \\
+    \gamma_i &\sim \mbox{Normal}(0,1).
+\end{align}
+where the proportions $\pib_i$ are parameterized using a matrix of latent parameters, $\etab_{n\times p}$, whose elements are denoted by $\eta_{ij}$:
+\begin{align}
+	\pib_i &= \left( \frac{\exp(\eta_{i1})}{1+\sum_{j=1}^p \exp(\eta_{ij})}, \dots, \frac{\exp(\eta_{ip})}	{1+\sum_{j=1}^p \exp(\eta_{ij})}, \frac{1}{1+\sum_{j=1}^p \exp(\eta_{ij})} \right). \nonumber
+\end{align}
+\noindent The elements of $\etab$ can be thought of as the additive log-ratio transformed proportions with respect to the reference taxon $p+1$: 
+\begin{align}
+	\etab_{i\cdot} &= \left[ \log\left(\frac{\pi_{i1}}{\pi_{i(p+1)}}\right), \dots,  \log\left(\frac{\pi_{ip}}{\pi_{i(p+1)}}\right) \right],\nonumber
+\end{align}
+where $\etab_{i\cdot}$ represents row $i$ of $\etab$.
+## Interpretations of parameters
+Parameter interpretations come from marginalizing out the individual-specific term $\gamma_i$.  The expected value for $\etab_{i\cdot}$ (i.e. the additive log-ratio transformed proportions for individual $i$) is written as:
+\begin{align}
+	\E(\etab_{i\cdot} | \Ab, \Bb, \Psib, \Gammab) &= \Ab \xb_i . \nonumber
+\end{align}
+Hence, $\Ab$ characterizes how the covariates in $\xb_i$ affect the expected value of the additive log-ratio transformed proportions for individual $i$, and ultimately the relative abundances of the taxa for individual $i$.  Likewise, the covariance matrix for $\etab_{i\cdot}$ is calculated as:
+\begin{align}
+	\label{eqn:var}
+	\var(\etab_{i\cdot} | \Ab, \Bb, \Psib, \Gammab) &= \Psib + \Bb\xb_i\xb_i^\top\Bb^\top \nonumber \\
+	&= \Sigmab_{\xb_i} .
+\end{align}
+The matrix $\Sigmab_{\xb_i}$, or perhaps its corresponding correlation matrix, can then be used to define a taxon co-occurrence network for individual $i$ based on the covariates. In this expression, $\Psib$ can be thought of as a baseline covariance matrix and $\Bb$ describes how the covariates in $\xb_i$ affect $\Sigmab_{\xb_i}$.
+
+## Running **MiCoRe**
+After installing the \texttt{micore} package, running the method is simple.  Let's simulate some data and run the function.  Note that you need to supply the model matrix $\Xb$, and you specifically need to give it an intercept column.  Also note that, in this example, we run only 500 burn-in and 500 MCMC samples, but in practice, you should likely run for longer.  For example, the default is 4000 burn-in and 4000 MCMC samples.
+After installing the \texttt{micore} package, running the method is simple.  Let's load in some data and run the function.  Note that you need to supply the model matrix $\Xb$, and you specifically need to give it an intercept column. This can be done easily using the \texttt{model.matrix()} function. Also note that, in this example, we run only 500 burn-in and 500 MCMC samples, but in practice, you should likely run for longer.  For example, the default is 4000 burn-in and 4000 MCMC samples.
+
+We'll run \texttt{micore} and include BMI in the model matrix.
+
+```{r sim_and_run}
+n <- 100
+p <- 5
+q <- 2
+# Simulating data
+x <- rnorm(n)
+# Model matrix with intercept column
+X <- cbind(1, x)
+counts <- matrix(0, n, p+1)
+for (i in 1:n) {
+  counts[i,] <- rmultinom(1, size=100, prob=rep(1,p+1))
+}
+# Loading in sample American Gut dataset included in package
+library(micore)
+data(amgut)
+counts <- amgut$counts
+X <- model.matrix(~BMI, amgut$clin.dat)
+# Number of burn-in samples and number of MCMC samples to save
+n.burn <- 500
+n.samp <- 500
+# Running micore
+library(micore)
+mc.fit <- micore(counts, X, n.burn = n.burn, n.samp = n.samp, 
+                 n.chain=4, n.cores=4, verbose=TRUE)
+```
+@@ -229,6 +224,25 @@ trplot(mc.fit, par="B", ind=c(1,1))
+```
+In this example, the chains have not yet converged, meaning that it is possible that not enough MCMC samples have been run.  In this case it would be wise to increase the parameters \texttt{n.burn} and \texttt{n.samp} in the \texttt{micore()} function.
+
+It is also a good idea to check convergence of \texttt{eta}, as this parameter relies on the adaptive Metropolis step.
+```{r traceplot_eta}
+trplot(mc.fit, par="eta", ind=c(1,1))
+```
+Several parameters for the adaptive Metropolis sampler can be changed from their defaults; these parameters are specified as list elements of the \texttt{adapt.control} argument to \texttt{micore}.
+\begin{itemize}
+  \item \texttt{init}: (default 0.1) The initial stepsize for the adaptive Metropolis parameters.
+  \item \texttt{a}: (default 0.5) The adaptation rate. A higher value means the adaptations will vanish more quickly with the number of MCMC steps.
+  \item \texttt{sigma.zero}: (default 1) The initial value of the adaptive Metropolis variance scaling parameter.
+\end{itemize}
+Sometimes the \texttt{a} parameter must be changed to get convergence for \texttt{eta}.
+```{r change_a, eval=FALSE}
+# Running micore with a different value for "a" parameter in adaptive Metropolis.  
+# Setting a = 0.3.
+mc.fit <- micore(counts, X, n.burn = n.burn, n.samp = n.samp, 
+                 n.chain=4, n.cores=4, verbose=TRUE,
+                 adapt.control = list(a=0.3))
+```
