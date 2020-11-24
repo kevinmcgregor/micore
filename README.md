@@ -10,5 +10,10 @@ if (!require(devtools)) {
   install.packages("devtools")
   library(devtools)
 }
-install_github("kevinmcgregor/micore", dependencies=TRUE)
+install_github("kevinmcgregor/micore", dependencies=TRUE, build_vignettes = TRUE)
+```
+## Vignette
+Once you've successfully installed **micore**, you can access the vignette by running:
+```r
+vignette("micore-vignette")
 ```
